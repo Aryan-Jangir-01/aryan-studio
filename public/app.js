@@ -74,12 +74,17 @@ async function handleSendOtp() {
   btnSendSpinner.classList.remove('hidden');
   hideToast();
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
   try {
     const res = await fetch('/api/auth/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     const data = await res.json();
 
@@ -101,8 +106,13 @@ async function handleSendOtp() {
 
   } catch (err) {
     console.error('Send OTP Error:', err);
-    showToast('Server connection error. Kripya dobara try karein.', 'error');
+    if (err.name === 'AbortError') {
+      showToast('Timeout: Server se connect nahi ho paya. Render Environment Variables check karein.', 'error');
+    } else {
+      showToast('Server connection error. Kripya dobara try karein.', 'error');
+    }
   } finally {
+    clearTimeout(timeoutId);
     btnSendOtp.disabled = false;
     btnSendText.textContent = 'Send Verification Code';
     btnSendSpinner.classList.add('hidden');
@@ -228,6 +238,9 @@ async function handleVerifyOtp() {
   btnVerifySpinner.classList.remove('hidden');
   hideToast();
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
   try {
     const res = await fetch('/api/auth/verify-otp', {
       method: 'POST',
@@ -235,8 +248,10 @@ async function handleVerifyOtp() {
       body: JSON.stringify({
         email: currentEmail,
         otp: otpCode
-      })
+      }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     const data = await res.json();
 
@@ -255,8 +270,13 @@ async function handleVerifyOtp() {
 
   } catch (err) {
     console.error('Verify error:', err);
-    showToast('Network error while verifying OTP.', 'error');
+    if (err.name === 'AbortError') {
+      showToast('Timeout: Verification me samay lag raha hai. Dobara try karein.', 'error');
+    } else {
+      showToast('Network error while verifying OTP.', 'error');
+    }
   } finally {
+    clearTimeout(timeoutId);
     btnVerifyOtp.disabled = false;
     btnVerifyText.textContent = 'Verify & Continue';
     btnVerifySpinner.classList.add('hidden');

@@ -13,11 +13,13 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('he
 
 // Connect to MongoDB Atlas Cloud Database
 if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI)
+  mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 8000
+  })
     .then(() => console.log('[MONGODB] Connected successfully to MongoDB Atlas Cloud!'))
     .catch(err => console.error('[MONGODB ERROR]', err.message));
 } else {
-  console.log('[MONGODB] No MONGODB_URI in .env. Running without cloud DB persistence.');
+  console.log('[MONGODB] No MONGODB_URI configured. Running without cloud DB persistence.');
 }
 
 // User Schema & Model for Permanent Data Storage
@@ -45,28 +47,22 @@ async function getTransporter() {
   if (emailTransporter) return emailTransporter;
 
   if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    // Gmail SMTP Transport
+    // Gmail SMTP Transport with explicit SSL & timeouts
     emailTransporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER.trim(),
         pass: process.env.EMAIL_PASS.trim()
-      }
+      },
+      connectionTimeout: 10000, // 10s timeout
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
     console.log(`[EMAIL] Connected to Gmail SMTP (${process.env.EMAIL_USER})`);
   } else {
-    // Ethereal Test Transport (Fallback if credentials not provided)
-    const testAccount = await nodemailer.createTestAccount();
-    emailTransporter = nodemailer.createTransport({
-      host: testAccount.smtp.host,
-      port: testAccount.smtp.port,
-      secure: testAccount.smtp.secure,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-    console.log(`[EMAIL] Running in Ethereal Test Mode. Add EMAIL_USER and EMAIL_PASS to .env for real Gmail delivery.`);
+    throw new Error('EMAIL_USER aur EMAIL_PASS server par set nahi hain! Kripya Render Dashboard > Environment Variables me EMAIL_USER aur EMAIL_PASS add karein.');
   }
 
   return emailTransporter;

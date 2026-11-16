@@ -23,8 +23,8 @@ Build a secure, professional, responsive Admin Dashboard for Aryan Jangir Studio
   - Live dashboard with stats cards, table view, search filter, CSV export, and logout
 
 ## 3. Execution Roadmap
-- [ ] Task 1: Update `.env` with `ADMIN_PASSWORD=aryan@admin2026` and `.env.example`.
-- [ ] Task 2: Implement Admin backend APIs with authentication middleware in `server.js`.
-- [ ] Task 3: Build `public/admin.html` and `public/admin.js` with responsive Tailwind UI, search, stats, and CSV export.
-- [ ] Task 4: Test and verify admin login, stats, data fetching, export, and route protection.
-- [ ] Task 5: Push updates to GitHub repository.
+- [x] Task 1: Update `.env` with `ADMIN_PASSWORD=aryan@admin2026` and `.env.example`.
+- [x] Task 2: Implement Admin backend APIs with authentication middleware in `server.js`.
+- [x] Task 3: Build `public/admin.html` and `public/admin.js` with responsive Tailwind UI, search, stats, and CSV export.
+- [x] Task 4: Test and verify admin login, stats, data fetching, export, and route protection.
+- [x] Task 5: Push updates to GitHub repository.
