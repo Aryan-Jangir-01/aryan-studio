@@ -4,13 +4,33 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
-// In-Memory store for OTPs and Rate Limiting
+// Connect to MongoDB Atlas Cloud Database
+if (process.env.MONGODB_URI) {
+  mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('[MONGODB] Connected successfully to MongoDB Atlas Cloud!'))
+    .catch(err => console.error('[MONGODB ERROR]', err.message));
+} else {
+  console.log('[MONGODB] No MONGODB_URI in .env. Running without cloud DB persistence.');
+}
+
+// User Schema & Model for Permanent Data Storage
+const userSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  isVerified: { type: Boolean, default: true },
+  lastLoginAt: { type: Date, default: Date.now },
+  loginCount: { type: Number, default: 1 },
+  createdAt: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', userSchema);
+
+// In-Memory store for active OTPs and Rate Limiting
 const otpStore = new Map();
 
 // Middleware
@@ -245,7 +265,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 // -------------------------------------------------------------
 // POST /api/auth/verify-otp
 // -------------------------------------------------------------
-app.post('/api/auth/verify-otp', (req, res) => {
+app.post('/api/auth/verify-otp', async (req, res) => {
   const { email, otp } = req.body;
   const normalizedEmail = normalizeEmail(email);
 
@@ -299,6 +319,25 @@ app.post('/api/auth/verify-otp', (req, res) => {
   // Verification successful! Invalidate used OTP immediately
   otpStore.delete(normalizedEmail);
 
+  // Save/Update user in MongoDB Atlas Cloud
+  let dbUser = null;
+  try {
+    if (mongoose.connection.readyState === 1) {
+      dbUser = await User.findOneAndUpdate(
+        { email: normalizedEmail },
+        { 
+          $set: { isVerified: true, lastLoginAt: new Date() },
+          $inc: { loginCount: 1 },
+          $setOnInsert: { createdAt: new Date() }
+        },
+        { upsert: true, new: true }
+      );
+      console.log(`[MONGODB] User saved permanently in Atlas: ${normalizedEmail} (Logins: ${dbUser.loginCount})`);
+    }
+  } catch (dbErr) {
+    console.error('[MONGODB SAVE ERROR]', dbErr.message);
+  }
+
   // Generate JWT Session Token
   const token = jwt.sign(
     {
@@ -312,11 +351,12 @@ app.post('/api/auth/verify-otp', (req, res) => {
 
   return res.json({
     success: true,
-    message: 'Email address verified successfully!',
+    message: 'Email address verified and saved to database!',
     token,
     user: {
       email: normalizedEmail,
-      verified: true
+      verified: true,
+      loginCount: dbUser ? dbUser.loginCount : 1
     }
   });
 });
