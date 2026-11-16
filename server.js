@@ -392,6 +392,133 @@ app.get('/api/auth/session', authenticateToken, (req, res) => {
   });
 });
 
+// =============================================================
+// ADMIN PORTAL & APIS
+// =============================================================
+
+// Serve Admin UI on /admin
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Middleware: Authenticate Admin Token
+function authenticateAdmin(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Admin authentication required.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, admin) => {
+    if (err || !admin || admin.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Forbidden. Admin privileges required.' });
+    }
+    req.admin = admin;
+    next();
+  });
+}
+
+// POST /api/admin/login
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  const expectedPassword = process.env.ADMIN_PASSWORD || 'aryan@admin2026';
+
+  if (!password || password.trim() !== expectedPassword.trim()) {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid Admin Password.'
+    });
+  }
+
+  const token = jwt.sign(
+    { role: 'admin', user: 'aryan', loggedInAt: new Date().toISOString() },
+    JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+
+  return res.json({
+    success: true,
+    message: 'Welcome Aryan! Admin authenticated successfully.',
+    token
+  });
+});
+
+// GET /api/admin/stats
+app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const verifiedUsers = await User.countDocuments({ isVerified: true });
+    
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayUsers = await User.countDocuments({ createdAt: { $gte: startOfToday } });
+
+    const totalLoginsAgg = await User.aggregate([
+      { $group: { _id: null, total: { $sum: '$loginCount' } } }
+    ]);
+    const totalLogins = totalLoginsAgg.length > 0 ? totalLoginsAgg[0].total : 0;
+
+    return res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        verifiedUsers,
+        todayUsers,
+        totalLogins,
+        dbConnected: mongoose.connection.readyState === 1
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/users
+app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
+  try {
+    const { search } = req.query;
+    let query = {};
+    if (search) {
+      query.email = { $regex: search.trim(), $options: 'i' };
+    }
+
+    const users = await User.find(query).sort({ lastLoginAt: -1 }).limit(100);
+    return res.json({ success: true, users });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/admin/users/:id
+app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const deleted = await User.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    return res.json({ success: true, message: 'User deleted from database.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/export (Download CSV)
+app.get('/api/admin/export', authenticateAdmin, async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 });
+    let csv = 'ID,Email,Verified,LoginCount,CreatedAt,LastLoginAt\n';
+    users.forEach(u => {
+      csv += `"${u._id}","${u.email}",${u.isVerified},${u.loginCount},"${u.createdAt.toISOString()}","${u.lastLoginAt.toISOString()}"\n`;
+    });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="aryan_studio_users.csv"');
+    return res.send(csv);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

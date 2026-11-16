@@ -1,17 +1,30 @@
-# Implementation Plan: Live Gmail OTP Authentication System
+# Implementation Plan: Aryan Jangir Studio Admin Panel
 
 ## 1. Objective
-Build and configure a production-ready Email OTP Authentication System delivering real, live OTP emails directly to the user's Gmail inbox via Google SMTP:
-- Sender Account: `aryanjangir0805@gmail.com`
-- App Password Authenticated: `gzkj vaig wxku rwli`
-- Real email delivery directly to the user's phone / Gmail app
-- 1-minute countdown timer & 60-second OTP validity
-- Auto-advancing 6-box OTP entry UI with paste support
-- Anti-brute force protection (maximum 3 invalid attempts)
-- JWT session token generation upon successful verification
+Build a secure, professional, responsive Admin Dashboard for Aryan Jangir Studio featuring:
+- Secret URL route: `/admin`
+- Password-protected authentication with JWT session token
+- Real-time connection to MongoDB Atlas Cloud database
+- Live stats overview (Total Users, Verified Users, Total Logins, Today's Activity)
+- Interactive searchable users table with real-time filtering
+- 1-Click CSV/Excel data export
+- Delete user capability
+- Clean modern glassmorphic dark UI matching the studio aesthetic
 
-## 2. Status
-- [x] Gmail SMTP credentials verified & connected to Google Mail servers.
-- [x] Ethereal preview disabled; replaced with 100% direct inbox delivery.
-- [x] Test email successfully delivered with Message ID `<0c7cb2b1-4dab-7fb4-3dca-5a0c717a7565@gmail.com>`.
-- [x] UI synchronized and live on `http://localhost:3000`.
+## 2. Architecture & API Endpoints
+- **Backend (`server.js`):**
+  - `POST /api/admin/login` -> Authenticates admin password (configured in `.env` as `ADMIN_PASSWORD`) and issues an admin JWT token
+  - `GET  /api/admin/stats` -> Returns user counts & activity metrics from MongoDB
+  - `GET  /api/admin/users` -> Fetches all user documents from MongoDB with search query support
+  - `DELETE /api/admin/users/:id` -> Removes a user record from MongoDB
+  - `GET  /api/admin/export` -> Exports all database records as downloadable CSV
+- **Frontend (`public/admin.html`, `public/admin.js`):**
+  - Admin login gate with error handling
+  - Live dashboard with stats cards, table view, search filter, CSV export, and logout
+
+## 3. Execution Roadmap
+- [ ] Task 1: Update `.env` with `ADMIN_PASSWORD=aryan@admin2026` and `.env.example`.
+- [ ] Task 2: Implement Admin backend APIs with authentication middleware in `server.js`.
+- [ ] Task 3: Build `public/admin.html` and `public/admin.js` with responsive Tailwind UI, search, stats, and CSV export.
+- [ ] Task 4: Test and verify admin login, stats, data fetching, export, and route protection.
+- [ ] Task 5: Push updates to GitHub repository.
