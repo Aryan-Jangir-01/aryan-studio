@@ -1,0 +1,9 @@
+# Dependencies
+node_modules/
+
+# Environment Secrets (Keep your Gmail App Password private!)
+.env
+
+# OS Files
+.DS_Store
+Thumbs.db
