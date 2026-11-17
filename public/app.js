@@ -2,6 +2,11 @@
 // ARYAN JANGIR STUDIO - UNIFIED PORTAL (USER + ADMIN)
 // =============================================================
 
+// Dynamic API Base: Automatically routes API calls to live Render cloud backend if loaded from GitHub Pages (github.io)
+const API_BASE = (window.location.hostname.includes('github.io'))
+  ? (localStorage.getItem('studio_api_url') || 'https://aryan-studio.onrender.com')
+  : '';
+
 // -------------------------------------------------------------
 // 1. Toast Notification System
 // -------------------------------------------------------------
@@ -165,7 +170,7 @@ async function handleSendOtp() {
   const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
   try {
-    const res = await fetch('/api/auth/send-otp', {
+    const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -323,7 +328,7 @@ async function handleVerifyOtp() {
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const res = await fetch('/api/auth/verify-otp', {
+    const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -383,7 +388,7 @@ function renderUserDashboard(email, token) {
       btnTestApi.disabled = true;
       btnTestApi.textContent = 'Testing Token...';
 
-      const res = await fetch('/api/auth/test-token', {
+      const res = await fetch(`${API_BASE}/api/auth/test-token`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const resData = await res.json();
@@ -515,7 +520,7 @@ if (adminLoginForm) {
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const res = await fetch('/api/admin/login', {
+      const res = await fetch(`${API_BASE}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -651,7 +656,7 @@ async function handleAdminVerifyOtp() {
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const res = await fetch('/api/admin/verify-otp', {
+    const res = await fetch(`${API_BASE}/api/admin/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -728,7 +733,7 @@ if (btnAdminResend) {
     btnAdminResend.textContent = 'Sending...';
 
     try {
-      const res = await fetch('/api/admin/resend-otp', {
+      const res = await fetch(`${API_BASE}/api/admin/resend-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempSessionId: adminTempSessionId })
@@ -776,7 +781,7 @@ async function loadAdminStats() {
   if (!adminToken) return;
 
   try {
-    const res = await fetch('/api/admin/stats', {
+    const res = await fetch(`${API_BASE}/api/admin/stats`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
 
@@ -806,7 +811,7 @@ async function loadAdminUsers(search = '') {
   }
 
   try {
-    const url = search ? `/api/admin/users?search=${encodeURIComponent(search)}` : '/api/admin/users';
+    const url = search ? `${API_BASE}/api/admin/users?search=${encodeURIComponent(search)}` : `${API_BASE}/api/admin/users`;
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -889,7 +894,7 @@ window.handleAdminDeleteUser = async (id, email) => {
   if (!confirmed) return;
 
   try {
-    const res = await fetch(`/api/admin/users/${id}`, {
+    const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -930,7 +935,7 @@ if (btnAdminRefresh) {
 if (btnAdminExport) {
   btnAdminExport.addEventListener('click', async () => {
     try {
-      const res = await fetch('/api/admin/export', {
+      const res = await fetch(`${API_BASE}/api/admin/export`, {
         headers: { 'Authorization': `Bearer ${adminToken}` }
       });
 
