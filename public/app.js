@@ -190,17 +190,8 @@ async function handleSendOtp() {
     stepOtp.classList.remove('hidden');
 
     clearOtpBoxes();
-    if (data.debugOtp) {
-      showToast(data.message || `Verification Code: ${data.debugOtp}`, 'success');
-      const digits = data.debugOtp.split('');
-      otpBoxes.forEach((box, i) => {
-        if (box && digits[i]) box.value = digits[i];
-      });
-      if (otpBoxes[otpBoxes.length - 1]) otpBoxes[otpBoxes.length - 1].focus();
-    } else {
-      showToast('Real OTP aapke Gmail par bhej diya gaya hai! Check your inbox.', 'success');
-      if (otpBoxes[0]) otpBoxes[0].focus();
-    }
+    if (otpBoxes[0]) otpBoxes[0].focus();
+    showToast('Real OTP aapke Gmail par bhej diya gaya hai! Check your inbox.', 'success');
 
     startResendCountdown();
 
@@ -580,17 +571,8 @@ if (adminLoginForm) {
       adminStepOtp.classList.remove('hidden');
 
       clearAdminOtpBoxes();
-      if (data.debugOtp) {
-        showToast(data.message || `2FA Code: ${data.debugOtp}`, 'success');
-        const digits = data.debugOtp.split('');
-        adminOtpBoxes.forEach((box, i) => {
-          if (box && digits[i]) box.value = digits[i];
-        });
-        if (adminOtpBoxes[adminOtpBoxes.length - 1]) adminOtpBoxes[adminOtpBoxes.length - 1].focus();
-      } else {
-        if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
-        showToast('Master Password Verified! 6-digit 2FA code sent to your admin email.', 'success');
-      }
+      if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
+      showToast('Master Password Verified! 6-digit 2FA code sent to your admin email.', 'success');
 
       startAdminResendCountdown();
 
@@ -782,17 +764,9 @@ if (btnAdminResend) {
 
       const data = await res.json();
       if (data.success) {
-        showToast(data.message || 'New Admin 2FA code sent to your email!', 'success');
+        showToast('New Admin 2FA code sent to your email!', 'success');
         clearAdminOtpBoxes();
-        if (data.debugOtp) {
-          const digits = data.debugOtp.split('');
-          adminOtpBoxes.forEach((box, i) => {
-            if (box && digits[i]) box.value = digits[i];
-          });
-          if (adminOtpBoxes[adminOtpBoxes.length - 1]) adminOtpBoxes[adminOtpBoxes.length - 1].focus();
-        } else {
-          if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
-        }
+        if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
         startAdminResendCountdown();
       } else {
         showToast(data.message || 'Failed to resend Admin OTP.', 'error');

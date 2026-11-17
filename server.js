@@ -337,10 +337,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
       hourResetAt
     });
 
-    const isDelivered = emailResult.success;
-    const responseMsg = isDelivered
-      ? 'Verification code sent to your email! Check your inbox.'
-      : `Verification code generated! (Cloud Demo/Bypass OTP: ${rawOtp})`;
+    const responseMsg = 'Verification code sent to your email! Check your inbox.';
 
     return res.json({
       success: true,
@@ -348,7 +345,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
       email: normalizedEmail,
       expiresInSeconds: 60,
       previewUrl: emailResult.previewUrl || null,
-      debugOtp: rawOtp
+      debugOtp: process.env.NODE_ENV !== 'production' ? rawOtp : undefined
     });
 
   } catch (error) {
@@ -565,10 +562,7 @@ app.post('/api/admin/login', async (req, res) => {
       adminEmail
     });
 
-    const isDelivered = emailResult.success;
-    const responseMsg = isDelivered
-      ? 'Master Password verified! 6-digit 2FA code sent to your admin email.'
-      : `Master Password verified! (Render free cloud blocks SMTP ports - 2FA Code: ${rawOtp})`;
+    const responseMsg = 'Master Password verified! 6-digit 2FA code sent to your admin email.';
 
     return res.json({
       success: true,
@@ -577,8 +571,7 @@ app.post('/api/admin/login', async (req, res) => {
       maskedEmail: maskEmail(adminEmail),
       expiresInSeconds: 60,
       message: responseMsg,
-      debugOtp: rawOtp,
-      isSmtpDelivered: isDelivered
+      debugOtp: process.env.NODE_ENV !== 'production' ? rawOtp : undefined
     });
 
   } catch (err) {
@@ -698,17 +691,10 @@ app.post('/api/admin/resend-otp', async (req, res) => {
     console.log(`[ADMIN 2FA] Resending OTP to: ${record.adminEmail}...`);
     const emailResult = await sendAdminOtpEmail(record.adminEmail, rawOtp);
 
-    const isDelivered = emailResult.success;
-    const responseMsg = isDelivered
-      ? 'New Admin OTP sent to your email!'
-      : `New Admin OTP generated! (Render free cloud blocks SMTP - Code: ${rawOtp})`;
-
     return res.json({
       success: true,
-      message: responseMsg,
-      expiresInSeconds: 60,
-      debugOtp: rawOtp,
-      isSmtpDelivered: isDelivered
+      message: 'New Admin OTP sent to your email!',
+      expiresInSeconds: 60
     });
 
   } catch (err) {
