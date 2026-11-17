@@ -441,9 +441,36 @@ const btnAdminLock = document.getElementById('btn-admin-lock');
 const adminUsersTableBody = document.getElementById('admin-users-table-body');
 const adminEmptyState = document.getElementById('admin-empty-state');
 
+// Admin 2FA DOM Elements
+const adminStepPassword = document.getElementById('admin-step-password');
+const adminStepOtp = document.getElementById('admin-step-otp');
+const adminDisplayEmail = document.getElementById('admin-display-email');
+const btnAdminChangePassword = document.getElementById('btn-admin-change-password');
+const adminOtpBoxes = document.querySelectorAll('.admin-otp-box');
+const adminOtpContainer = document.getElementById('admin-otp-inputs-container');
+const btnAdminVerifyOtp = document.getElementById('btn-admin-verify-otp');
+const btnAdminVerifyText = document.getElementById('btn-admin-verify-text');
+const btnAdminVerifySpinner = document.getElementById('btn-admin-verify-spinner');
+const adminResendCountdownText = document.getElementById('admin-resend-countdown-text');
+const adminResendSeconds = document.getElementById('admin-resend-seconds');
+const btnAdminResend = document.getElementById('btn-admin-resend');
+
+let adminTempSessionId = null;
+let adminResendTimerInterval = null;
+let adminResendCooldown = 60;
+
 function showAdminUnlock() {
   adminDataView.classList.add('hidden');
   adminUnlockView.classList.remove('hidden');
+
+  // Reset to Step 1 (Password)
+  clearInterval(adminResendTimerInterval);
+  adminTempSessionId = null;
+  if (adminStepPassword) adminStepPassword.classList.remove('hidden');
+  if (adminStepOtp) adminStepOtp.classList.add('hidden');
+  if (adminLoginError) adminLoginError.classList.add('hidden');
+
+  clearAdminOtpBoxes();
   if (adminPasswordInput) {
     adminPasswordInput.value = '';
     adminPasswordInput.focus();
@@ -451,6 +478,7 @@ function showAdminUnlock() {
 }
 
 function showAdminDashboard() {
+  clearInterval(adminResendTimerInterval);
   adminUnlockView.classList.add('hidden');
   adminDataView.classList.remove('hidden');
   loadAdminStats();
@@ -468,7 +496,7 @@ if (btnAdminLock) {
   btnAdminLock.addEventListener('click', lockAdmin);
 }
 
-// Admin Master Password Login Form
+// Admin Step 1: Password Submit -> Dispatches 2FA Code
 if (adminLoginForm) {
   adminLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -478,15 +506,20 @@ if (adminLoginForm) {
 
     adminLoginError.classList.add('hidden');
     btnAdminLoginSubmit.disabled = true;
-    btnAdminLoginText.textContent = 'Verifying Password...';
+    btnAdminLoginText.textContent = 'Verifying Password & Sending 2FA Code...';
     btnAdminLoginSpinner.classList.remove('hidden');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ password }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       const data = await res.json();
 
@@ -498,20 +531,228 @@ if (adminLoginForm) {
         return;
       }
 
-      // Success!
-      adminToken = data.token;
-      localStorage.setItem('admin_token', adminToken);
-      showToast('Admin Portal Unlocked! Connected to MongoDB Atlas.', 'success');
-      showAdminDashboard();
+      // Password verified! Advance to Step 2: 2FA OTP
+      adminTempSessionId = data.tempSessionId;
+      if (adminDisplayEmail) {
+        adminDisplayEmail.textContent = data.maskedEmail || 'admin email';
+      }
+
+      adminStepPassword.classList.add('hidden');
+      adminStepOtp.classList.remove('hidden');
+
+      clearAdminOtpBoxes();
+      if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
+
+      startAdminResendCountdown();
+      showToast('Master Password Verified! 6-digit 2FA code sent to your admin email.', 'success');
 
     } catch (err) {
-      adminLoginError.textContent = 'Server connection error. Check your network.';
+      console.error('Admin login error:', err);
+      if (err.name === 'AbortError') {
+        adminLoginError.textContent = 'Connection timeout. Check Render environment and retry.';
+      } else {
+        adminLoginError.textContent = 'Server connection error. Check your network.';
+      }
       adminLoginError.classList.remove('hidden');
     } finally {
+      clearTimeout(timeoutId);
       btnAdminLoginSubmit.disabled = false;
-      btnAdminLoginText.textContent = 'Unlock Database Dashboard';
+      btnAdminLoginText.textContent = 'Verify Password & Send 2FA Code';
       btnAdminLoginSpinner.classList.add('hidden');
     }
+  });
+}
+
+// Admin 2FA Box Management
+function clearAdminOtpBoxes() {
+  adminOtpBoxes.forEach((box) => {
+    box.value = '';
+    box.classList.remove('filled');
+  });
+}
+
+function getEnteredAdminOtp() {
+  let code = '';
+  adminOtpBoxes.forEach((box) => { code += box.value; });
+  return code;
+}
+
+adminOtpBoxes.forEach((box, index) => {
+  box.addEventListener('input', (e) => {
+    const val = e.target.value.replace(/\D/g, '');
+    box.value = val ? val[0] : '';
+
+    if (box.value) {
+      box.classList.add('filled');
+      if (index < adminOtpBoxes.length - 1) {
+        adminOtpBoxes[index + 1].focus();
+      }
+    } else {
+      box.classList.remove('filled');
+    }
+
+    if (getEnteredAdminOtp().length === 6) {
+      handleAdminVerifyOtp();
+    }
+  });
+
+  box.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && !box.value && index > 0) {
+      adminOtpBoxes[index - 1].focus();
+    }
+  });
+
+  box.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+    const cleanNumbers = pasteData.replace(/\D/g, '').slice(0, 6);
+
+    if (cleanNumbers.length > 0) {
+      cleanNumbers.split('').forEach((char, i) => {
+        if (adminOtpBoxes[i]) {
+          adminOtpBoxes[i].value = char;
+          adminOtpBoxes[i].classList.add('filled');
+        }
+      });
+
+      const nextFocus = Math.min(cleanNumbers.length, adminOtpBoxes.length - 1);
+      adminOtpBoxes[nextFocus].focus();
+
+      if (cleanNumbers.length === 6) {
+        handleAdminVerifyOtp();
+      }
+    }
+  });
+});
+
+// Admin Step 2: Verify 2FA OTP
+async function handleAdminVerifyOtp() {
+  const otpCode = getEnteredAdminOtp();
+
+  if (otpCode.length !== 6) {
+    showToast('Kripya 6-digit Admin 2FA code enter karein.', 'error');
+    return;
+  }
+
+  if (!adminTempSessionId) {
+    showToast('Admin session expired. Kripya password dobara enter karein.', 'error');
+    showAdminUnlock();
+    return;
+  }
+
+  btnAdminVerifyOtp.disabled = true;
+  btnAdminVerifyText.textContent = 'Verifying 2FA...';
+  btnAdminVerifySpinner.classList.remove('hidden');
+  hideToast();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const res = await fetch('/api/admin/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tempSessionId: adminTempSessionId,
+        otp: otpCode
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast(data.message || 'Admin 2FA verification failed.', 'error');
+      adminOtpContainer.classList.add('shake');
+      setTimeout(() => adminOtpContainer.classList.remove('shake'), 400);
+
+      if (res.status === 403 || (data.message && data.message.includes('expired'))) {
+        setTimeout(() => showAdminUnlock(), 1500);
+      }
+      return;
+    }
+
+    // Success! Unlocked!
+    adminToken = data.token;
+    localStorage.setItem('admin_token', adminToken);
+    showToast('Admin 2FA Verified! Studio Dashboard Unlocked.', 'success');
+    showAdminDashboard();
+
+  } catch (err) {
+    console.error('Admin 2FA verify error:', err);
+    showToast('Network error while verifying Admin 2FA code.', 'error');
+  } finally {
+    clearTimeout(timeoutId);
+    btnAdminVerifyOtp.disabled = false;
+    btnAdminVerifyText.textContent = 'Verify 2FA & Unlock Dashboard';
+    btnAdminVerifySpinner.classList.add('hidden');
+  }
+}
+
+if (btnAdminVerifyOtp) {
+  btnAdminVerifyOtp.addEventListener('click', handleAdminVerifyOtp);
+}
+
+// Admin Resend Countdown
+function startAdminResendCountdown() {
+  clearInterval(adminResendTimerInterval);
+  adminResendCooldown = 60;
+  if (adminResendSeconds) adminResendSeconds.textContent = adminResendCooldown;
+  if (adminResendCountdownText) adminResendCountdownText.classList.remove('hidden');
+  if (btnAdminResend) btnAdminResend.classList.add('hidden');
+
+  adminResendTimerInterval = setInterval(() => {
+    adminResendCooldown--;
+    if (adminResendSeconds) adminResendSeconds.textContent = adminResendCooldown;
+
+    if (adminResendCooldown <= 0) {
+      clearInterval(adminResendTimerInterval);
+      if (adminResendCountdownText) adminResendCountdownText.classList.add('hidden');
+      if (btnAdminResend) btnAdminResend.classList.remove('hidden');
+    }
+  }, 1000);
+}
+
+if (btnAdminResend) {
+  btnAdminResend.addEventListener('click', async () => {
+    if (!adminTempSessionId) {
+      showToast('Session expired. Kripya password dobara enter karein.', 'error');
+      showAdminUnlock();
+      return;
+    }
+
+    btnAdminResend.disabled = true;
+    btnAdminResend.textContent = 'Sending...';
+
+    try {
+      const res = await fetch('/api/admin/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempSessionId: adminTempSessionId })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showToast('New Admin 2FA code sent to your email!', 'success');
+        clearAdminOtpBoxes();
+        if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
+        startAdminResendCountdown();
+      } else {
+        showToast(data.message || 'Failed to resend Admin OTP.', 'error');
+      }
+    } catch (err) {
+      showToast('Error requesting new Admin OTP.', 'error');
+    } finally {
+      btnAdminResend.disabled = false;
+      btnAdminResend.textContent = 'Resend Code';
+    }
+  });
+}
+
+if (btnAdminChangePassword) {
+  btnAdminChangePassword.addEventListener('click', () => {
+    showAdminUnlock();
   });
 }
 

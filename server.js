@@ -34,6 +34,7 @@ const User = mongoose.model('User', userSchema);
 
 // In-Memory store for active OTPs and Rate Limiting
 const otpStore = new Map();
+const adminOtpStore = new Map(); // Store for Admin 2FA OTP Sessions
 
 // Middleware
 app.use(cors());
@@ -170,6 +171,69 @@ async function sendOtpEmail(toEmail, otp) {
 
   const previewUrl = nodemailer.getTestMessageUrl(info);
   return { info, previewUrl };
+}
+
+// Helper: Mask email address for security display (e.g. ar***05@gmail.com)
+function maskEmail(email) {
+  if (!email || !email.includes('@')) return 'admin@email.com';
+  const [user, domain] = email.split('@');
+  if (user.length <= 2) return `${user[0]}***@${domain}`;
+  return `${user.slice(0, 2)}***${user.slice(-2)}@${domain}`;
+}
+
+// Helper: Send Master Admin 2FA Security Email
+async function sendAdminOtpEmail(toEmail, otp) {
+  const transporter = await getTransporter();
+  const sender = process.env.EMAIL_USER || 'admin-security@aryanstudio.local';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin: 0; padding: 0; background-color: #020617; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f8fafc;">
+      <div style="max-width: 520px; margin: 40px auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 20px; padding: 32px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        
+        <table style="width: 100%; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 44px; vertical-align: middle;">
+              <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #7c3aed, #4f46e5); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 20px; text-align: center; line-height: 44px;">🛡️</div>
+            </td>
+            <td style="vertical-align: middle; padding-left: 14px;">
+              <div style="font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">Aryan Jangir Studio</div>
+              <div style="font-size: 11px; color: #a855f7; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Security Alert • Master 2FA Clearance</div>
+            </td>
+          </tr>
+        </table>
+
+        <div style="background-color: #1e1b4b; border: 1px solid #4338ca; border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.5; color: #e0e7ff; margin-bottom: 24px;">
+          ⚠️ <strong>Master Dashboard Access Requested</strong><br>
+          Someone entered the correct Master Password for the Studio Admin Dashboard. Enter the following 2FA verification code to unlock access.
+        </div>
+
+        <div style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 2px dashed #6366f1; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+          <div style="font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #ffffff; font-family: monospace;">${otp}</div>
+          <div style="font-size: 12px; color: #cbd5e1; margin-top: 8px;">⏱️ Valid for exactly <strong>1 minute (60 seconds)</strong></div>
+        </div>
+
+        <div style="background-color: #450a0a; border: 1px solid #991b1b; border-radius: 12px; padding: 12px; font-size: 12px; color: #fca5a5; line-height: 1.5; margin-bottom: 20px;">
+          🔒 <strong>Security Notice:</strong> If you did not initiate this login, someone may know your Master Password. Please change your password immediately.
+        </div>
+
+        <div style="font-size: 11px; color: #64748b; text-align: center; border-top: 1px solid #1e293b; padding-top: 16px;">
+          Aryan Jangir Studio • Internal Database Control Plane • Confidential
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await transporter.sendMail({
+    from: `"Aryan Jangir Studio Security" <${sender}>`,
+    to: toEmail,
+    subject: `🛡️ Studio Admin 2FA Code: ${otp}`,
+    text: `Studio Admin 2FA Code: ${otp}\nValid for 1 minute.\nIf you did not request this, please change your master password.`,
+    html: htmlContent
+  });
 }
 
 // -------------------------------------------------------------
@@ -415,29 +479,181 @@ function authenticateAdmin(req, res, next) {
   });
 }
 
-// POST /api/admin/login
-app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  const expectedPassword = process.env.ADMIN_PASSWORD || 'aryan@admin2026';
+// POST /api/admin/login (Step 1 of 2FA: Verify Password -> Dispatch OTP)
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const expectedPassword = process.env.ADMIN_PASSWORD || 'aryan@admin2026';
 
-  if (!password || password.trim() !== expectedPassword.trim()) {
-    return res.status(401).json({
+    if (!password || password.trim() !== expectedPassword.trim()) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Admin Password.'
+      });
+    }
+
+    const adminEmail = (process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'aryanjangir0805@gmail.com').trim();
+    const now = Date.now();
+
+    // Generate secure 6-digit OTP
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
+    const salt = crypto.randomBytes(16).toString('hex');
+    const otpHash = hashOtp(rawOtp, salt);
+    const expiresAt = now + 1 * 60 * 1000; // 1 minute validity
+
+    const tempSessionId = crypto.randomBytes(24).toString('hex');
+
+    console.log(`[ADMIN 2FA] Password verified. Dispatching OTP to admin email: ${adminEmail}...`);
+    await sendAdminOtpEmail(adminEmail, rawOtp);
+    console.log(`[ADMIN 2FA] OTP successfully dispatched to ${adminEmail}`);
+
+    adminOtpStore.set(tempSessionId, {
+      salt,
+      otpHash,
+      expiresAt,
+      attempts: 0,
+      createdAt: now,
+      lastSentAt: now,
+      adminEmail
+    });
+
+    return res.json({
+      success: true,
+      requireOtp: true,
+      tempSessionId,
+      maskedEmail: maskEmail(adminEmail),
+      expiresInSeconds: 60,
+      message: 'Master Password verified! 6-digit 2FA code sent to your admin email.',
+      debugOtp: process.env.NODE_ENV !== 'production' ? rawOtp : undefined
+    });
+
+  } catch (err) {
+    console.error('[ADMIN LOGIN ERROR]', err);
+    return res.status(500).json({
       success: false,
-      message: 'Invalid Admin Password.'
+      message: err.message || 'Failed to dispatch Admin 2FA OTP.'
     });
   }
+});
 
-  const token = jwt.sign(
-    { role: 'admin', user: 'aryan', loggedInAt: new Date().toISOString() },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
+// POST /api/admin/verify-otp (Step 2 of 2FA: Verify 6-digit OTP -> Issue Token)
+app.post('/api/admin/verify-otp', (req, res) => {
+  try {
+    const { tempSessionId, otp } = req.body;
 
-  return res.json({
-    success: true,
-    message: 'Welcome Aryan! Admin authenticated successfully.',
-    token
-  });
+    if (!tempSessionId || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID and 6-digit OTP are required.'
+      });
+    }
+
+    const record = adminOtpStore.get(tempSessionId);
+
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin session expired or not found. Please log in again.'
+      });
+    }
+
+    const now = Date.now();
+
+    // Check 1-minute expiration
+    if (now > record.expiresAt) {
+      adminOtpStore.delete(tempSessionId);
+      return res.status(400).json({
+        success: false,
+        message: 'Admin OTP has expired (validity was 1 minute). Please request a new code.'
+      });
+    }
+
+    // Check Brute-force protection: Max 3 attempts
+    if (record.attempts >= 3) {
+      adminOtpStore.delete(tempSessionId);
+      return res.status(403).json({
+        success: false,
+        message: 'Too many incorrect attempts. This Admin 2FA session has been invalidated for security.'
+      });
+    }
+
+    // Hash check
+    const computedHash = hashOtp(otp.trim(), record.salt);
+    if (computedHash !== record.otpHash) {
+      record.attempts += 1;
+      const remaining = 3 - record.attempts;
+      return res.status(400).json({
+        success: false,
+        message: `Invalid Admin OTP. You have ${remaining} attempt(s) remaining.`
+      });
+    }
+
+    // Verified! Delete temp session
+    adminOtpStore.delete(tempSessionId);
+
+    // Issue Master Admin JWT token
+    const token = jwt.sign(
+      { role: 'admin', user: 'aryan', loggedInAt: new Date().toISOString() },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Welcome Aryan! Admin 2FA authentication successful.',
+      token
+    });
+
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/resend-otp (60s cooldown)
+app.post('/api/admin/resend-otp', async (req, res) => {
+  try {
+    const { tempSessionId } = req.body;
+    if (!tempSessionId) {
+      return res.status(400).json({ success: false, message: 'Session ID is required.' });
+    }
+
+    const record = adminOtpStore.get(tempSessionId);
+    if (!record) {
+      return res.status(400).json({ success: false, message: 'Session not found or expired. Please re-enter password.' });
+    }
+
+    const now = Date.now();
+    if (now - record.lastSentAt < 60 * 1000) {
+      const waitSeconds = Math.ceil((60 * 1000 - (now - record.lastSentAt)) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSeconds} seconds before requesting a new Admin OTP.`
+      });
+    }
+
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
+    const salt = crypto.randomBytes(16).toString('hex');
+    const otpHash = hashOtp(rawOtp, salt);
+
+    record.salt = salt;
+    record.otpHash = otpHash;
+    record.expiresAt = now + 1 * 60 * 1000;
+    record.attempts = 0;
+    record.lastSentAt = now;
+
+    console.log(`[ADMIN 2FA] Resending OTP to: ${record.adminEmail}...`);
+    await sendAdminOtpEmail(record.adminEmail, rawOtp);
+
+    return res.json({
+      success: true,
+      message: 'New Admin OTP sent to your email!',
+      expiresInSeconds: 60,
+      debugOtp: process.env.NODE_ENV !== 'production' ? rawOtp : undefined
+    });
+
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // GET /api/admin/stats

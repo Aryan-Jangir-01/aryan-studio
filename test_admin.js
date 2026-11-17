@@ -41,12 +41,26 @@ async function runTests() {
   console.assert(res1.status === 401, 'Test 1 Failed');
   console.log('✅ Test 1 Passed:', res1.body.message);
 
-  // Test 2: Correct Admin Password
-  console.log('\nTest 2: Testing correct admin login (aryan@admin2026)...');
+  // Test 2: Master Password Verification (Step 1 of 2FA)
+  console.log('\nTest 2: Verifying master admin password (aryan@admin2026)...');
   const res2 = await request('/api/admin/login', 'POST', { password: 'aryan@admin2026' });
-  console.assert(res2.status === 200 && res2.body.token, 'Test 2 Failed');
-  const adminToken = res2.body.token;
-  console.log('✅ Test 2 Passed: Logged in! Received Admin Token');
+  console.assert(res2.status === 200 && res2.body.requireOtp === true, 'Test 2 Failed');
+  const tempSessionId = res2.body.tempSessionId;
+  const adminOtp = res2.body.debugOtp;
+  console.log('✅ Test 2 Passed: Password verified! 2FA OTP dispatched to:', res2.body.maskedEmail);
+
+  // Test 2B: Rejecting incorrect 2FA OTP
+  console.log('\nTest 2B: Testing rejection of invalid 2FA OTP (000000)...');
+  const res2B = await request('/api/admin/verify-otp', 'POST', { tempSessionId, otp: '000000' });
+  console.assert(res2B.status === 400 && res2B.body.success === false, 'Test 2B Failed');
+  console.log('✅ Test 2B Passed:', res2B.body.message);
+
+  // Test 2C: Verifying correct 2FA OTP (Step 2 of 2FA)
+  console.log('\nTest 2C: Verifying correct 2FA OTP...');
+  const res2C = await request('/api/admin/verify-otp', 'POST', { tempSessionId, otp: adminOtp });
+  console.assert(res2C.status === 200 && res2C.body.token, 'Test 2C Failed');
+  const adminToken = res2C.body.token;
+  console.log('✅ Test 2C Passed: 2FA Verified! Admin Dashboard Unlocked with JWT Token.');
 
   // Test 3: Fetch Stats
   console.log('\nTest 3: Fetching Live Database Stats...');

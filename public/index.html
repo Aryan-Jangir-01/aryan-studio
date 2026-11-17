@@ -231,22 +231,58 @@
 
           <div id="admin-login-error" class="hidden mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs text-center font-medium"></div>
 
-          <form id="admin-login-form" class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Master Password</label>
-              <input type="password" id="admin-password-input" placeholder="••••••••••••" autofocus
-                class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+          <!-- ADMIN STEP 1: PASSWORD FORM -->
+          <div id="admin-step-password">
+            <form id="admin-login-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Master Password</label>
+                <input type="password" id="admin-password-input" placeholder="••••••••••••" autofocus
+                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+              </div>
+
+              <button type="submit" id="btn-admin-login-submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
+                <span id="btn-admin-login-text">Verify Password & Send 2FA Code</span>
+                <svg id="btn-admin-login-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+              </button>
+            </form>
+          </div>
+
+          <!-- ADMIN STEP 2: 2FA OTP VERIFICATION -->
+          <div id="admin-step-otp" class="space-y-5 hidden">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400">2FA Code sent to: <strong id="admin-display-email" class="text-indigo-300 font-mono"></strong></span>
+              <button id="btn-admin-change-password" class="text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-4">Change</button>
             </div>
 
-            <button type="submit" id="btn-admin-login-submit"
-              class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
-              <span id="btn-admin-login-text">Unlock Database Dashboard</span>
-              <svg id="btn-admin-login-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">Enter 6-Digit Admin 2FA Code</label>
+              <div class="flex justify-between gap-2" id="admin-otp-inputs-container">
+                <input type="text" inputmode="numeric" maxlength="1" class="otp-box admin-otp-box" autofocus />
+                <input type="text" inputmode="numeric" maxlength="1" class="otp-box admin-otp-box" />
+                <input type="text" inputmode="numeric" maxlength="1" class="otp-box admin-otp-box" />
+                <input type="text" inputmode="numeric" maxlength="1" class="otp-box admin-otp-box" />
+                <input type="text" inputmode="numeric" maxlength="1" class="otp-box admin-otp-box" />
+                <input type="text" inputmode="numeric" maxlength="1" class="otp-box admin-otp-box" />
+              </div>
+            </div>
+
+            <button id="btn-admin-verify-otp" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span id="btn-admin-verify-text">Verify 2FA & Unlock Dashboard</span>
+              <svg id="btn-admin-verify-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
               </svg>
             </button>
-          </form>
+
+            <div class="text-center text-xs text-slate-400">
+              <span id="admin-resend-countdown-text">Resend code in <strong id="admin-resend-seconds" class="text-slate-200">60</strong>s</span>
+              <button id="btn-admin-resend" class="text-indigo-400 hover:text-indigo-300 font-semibold hidden">Resend Code</button>
+            </div>
+          </div>
 
           <div class="mt-5 text-center">
             <button id="btn-back-to-user" class="text-xs text-slate-500 hover:text-slate-300 transition">← Back to User Portal</button>
