@@ -1,0 +1,54 @@
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* OTP 6-Box Inputs */
+.otp-box {
+  width: 48px;
+  height: 56px;
+  border-radius: 12px;
+  background-color: #1e293b;
+  border: 1.5px solid #334155;
+  color: #f8fafc;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.otp-box:focus {
+  border-color: #6366f1;
+  background-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+  transform: translateY(-2px);
+}
+
+.otp-box.filled {
+  border-color: #10b981;
+  background-color: #064e3b20;
+}
+
+/* Chrome, Safari, Edge, Opera: Remove number spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Shake Animation for Invalid OTP */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
