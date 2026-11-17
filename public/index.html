@@ -3,147 +3,403 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email OTP Authentication System</title>
+  <title>Aryan Jangir Studio • Unified Portal & Admin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-['Inter'] antialiased flex flex-col">
 
   <!-- Ambient Glow Effects -->
-  <div class="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
-  <div class="fixed bottom-1/4 right-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+  <div class="fixed top-12 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+  <div class="fixed bottom-12 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
-  <!-- Main Card Container -->
-  <div class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative transition-all duration-300">
-
-    <!-- Brand / Header -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mb-4 shadow-inner">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      </div>
-      <div class="text-xs uppercase tracking-widest font-semibold text-indigo-400 mb-1">Aryan Jangir Studio</div>
-      <h1 class="text-2xl font-bold tracking-tight text-white">Email OTP Login</h1>
-      <p class="text-sm text-slate-400 mt-1">Receive verification code directly in your inbox</p>
-    </div>
-
-    <!-- Notification / Toast Message Area -->
-    <div id="toast" class="hidden mb-6 p-4 rounded-xl text-sm font-medium transition-all"></div>
-
-
-    <!-- STEP 1: Email Input Section -->
-    <div id="step-email" class="space-y-6">
-      <div>
-        <label for="email-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Email Address</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" />
-            </svg>
+  <!-- Unified Top Navigation Bar -->
+  <header class="bg-slate-900/80 border-b border-slate-800 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-indigo-600/20">
+          A
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-white tracking-tight">Aryan Jangir Studio</span>
+            <span id="active-tab-badge" class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              User Portal
+            </span>
           </div>
-          <input type="email" id="email-input" placeholder="aryan@example.com" autofocus
-            class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+          <div class="text-[11px] text-slate-400">Software • Frontend • Media Production</div>
         </div>
-        <p class="text-xs text-slate-500 mt-2">A 6-digit verification code will be sent to this email address.</p>
       </div>
 
-      <button id="btn-send-otp" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
-        <span id="btn-send-text">Send Verification Code</span>
-        <svg id="btn-send-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-        </svg>
-      </button>
+      <!-- Center / Right: Portal Switcher & Live DB Status -->
+      <div class="flex items-center gap-3">
+        
+        <!-- MongoDB Atlas Live Status Pill -->
+        <div class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-xs font-semibold">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          MongoDB Atlas Cloud
+        </div>
+
+        <!-- Tab Switcher (Unified 2-in-1 Dashboard Controls) -->
+        <div class="bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 flex items-center gap-1 shadow-inner">
+          <button id="tab-btn-user" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>User Portal</span>
+          </button>
+
+          <button id="tab-btn-admin" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>Admin Dashboard</span>
+          </button>
+        </div>
+
+      </div>
+
     </div>
+  </header>
 
-    <!-- STEP 2: OTP Verification Section -->
-    <div id="step-otp" class="space-y-6 hidden">
-      <div class="flex items-center justify-between text-sm">
-        <span class="text-slate-400">Code sent to: <strong id="display-email" class="text-slate-200 text-xs"></strong></span>
-        <button id="btn-change-email" class="text-indigo-400 hover:text-indigo-300 font-medium text-xs underline underline-offset-4">Change</button>
-      </div>
-
-      <!-- 6-Digit OTP Boxes -->
-      <div>
-        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">Enter 6-Digit Code</label>
-        <div class="flex justify-between gap-2" id="otp-inputs-container">
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autofocus />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
-        </div>
-      </div>
-
-      <button id="btn-verify-otp" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
-        <span id="btn-verify-text">Verify & Continue</span>
-        <svg id="btn-verify-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-        </svg>
-      </button>
-
-      <!-- Resend Timer (1 Minute) -->
-      <div class="text-center text-xs text-slate-400">
-        <span id="resend-countdown-text">Resend code in <strong id="resend-seconds" class="text-slate-200">60</strong>s</span>
-        <button id="btn-resend" class="text-indigo-400 hover:text-indigo-300 font-semibold hidden">Resend Code</button>
-      </div>
-    </div>
-
-    <!-- STEP 3: Authenticated Dashboard / Success -->
-    <div id="step-dashboard" class="space-y-6 hidden">
-      <div class="text-center py-4">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mb-3">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 class="text-xl font-bold text-white">Authentication Successful!</h2>
-        <p class="text-xs text-slate-400 mt-1">Your email is verified and session is active</p>
-      </div>
-
-      <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-4 space-y-3 text-xs">
-        <div class="flex justify-between items-center pb-2 border-b border-slate-700/50">
-          <span class="text-slate-400 font-medium">Verified Email:</span>
-          <span id="session-email" class="font-mono text-emerald-400 font-semibold text-sm"></span>
-        </div>
-        <div class="flex justify-between items-center pb-2 border-b border-slate-700/50">
-          <span class="text-slate-400 font-medium">Security Status:</span>
-          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Verified via Email OTP
-          </span>
-        </div>
-        <div class="flex justify-between items-center">
-          <span class="text-slate-400 font-medium">Session Token:</span>
-          <span class="text-slate-300 font-mono">HMAC SHA-256 JWT</span>
-        </div>
-      </div>
-
-      <div class="flex gap-2">
-        <button id="btn-test-api" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-3 px-3 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          Test Protected Route
-        </button>
-        <button id="btn-logout" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium py-3 px-4 rounded-xl text-xs transition border border-rose-500/30 flex items-center justify-center gap-1.5">
-          Sign Out
-        </button>
-      </div>
-
-      <div id="api-response-box" class="hidden p-3 rounded-xl bg-slate-950/80 border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto"></div>
-    </div>
-
+  <!-- Global Toast Notification Banner -->
+  <div class="max-w-md mx-auto w-full px-4 mt-4">
+    <div id="toast" class="hidden p-3.5 rounded-xl text-xs font-medium text-center transition-all shadow-lg border"></div>
   </div>
 
-  <footer class="mt-8 text-xs text-slate-500 text-center">
-    Built for Aryan Jangir &bull; Secure Email OTP Authentication
+  <!-- MAIN WRAPPER -->
+  <main class="flex-1 flex flex-col items-center justify-center p-4">
+
+    <!-- ============================================================== -->
+    <!-- VIEW 1: USER PORTAL (EMAIL OTP AUTH & USER DASHBOARD) -->
+    <!-- ============================================================== -->
+    <section id="view-user" class="w-full max-w-md my-auto">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative transition-all duration-300">
+
+        <!-- Brand / Header -->
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mb-3 shadow-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div class="text-xs uppercase tracking-widest font-semibold text-indigo-400 mb-1">Aryan Jangir Studio</div>
+          <h1 class="text-2xl font-bold tracking-tight text-white">Email OTP Login</h1>
+          <p class="text-xs text-slate-400 mt-1">Receive 6-digit verification code directly in your inbox</p>
+        </div>
+
+        <!-- STEP 1: Email Input Form -->
+        <div id="step-email" class="space-y-5">
+          <div>
+            <label for="email-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Email Address</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" />
+                </svg>
+              </div>
+              <input type="email" id="email-input" placeholder="aryan@example.com" autofocus
+                class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+            <p class="text-xs text-slate-500 mt-2">A 6-digit verification code will be sent to this email address.</p>
+          </div>
+
+          <button id="btn-send-otp" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="btn-send-text">Send Verification Code</span>
+            <svg id="btn-send-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- STEP 2: OTP Verification Form -->
+        <div id="step-otp" class="space-y-5 hidden">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Code sent to: <strong id="display-email" class="text-slate-200 font-mono"></strong></span>
+            <button id="btn-change-email" class="text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-4">Change</button>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">Enter 6-Digit Code</label>
+            <div class="flex justify-between gap-2" id="otp-inputs-container">
+              <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autofocus />
+              <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+              <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+              <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+              <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+              <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+            </div>
+          </div>
+
+          <button id="btn-verify-otp" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="btn-verify-text">Verify & Continue</span>
+            <svg id="btn-verify-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+          </button>
+
+          <div class="text-center text-xs text-slate-400">
+            <span id="resend-countdown-text">Resend code in <strong id="resend-seconds" class="text-slate-200">60</strong>s</span>
+            <button id="btn-resend" class="text-indigo-400 hover:text-indigo-300 font-semibold hidden">Resend Code</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Authenticated User Profile Dashboard -->
+        <div id="step-dashboard" class="space-y-5 hidden">
+          <div class="text-center py-2">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 class="text-xl font-bold text-white">Authentication Successful!</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Your email is verified and saved to MongoDB Atlas</p>
+          </div>
+
+          <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-4 space-y-2.5 text-xs">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-700/50">
+              <span class="text-slate-400">User Email:</span>
+              <span id="session-email" class="font-mono text-emerald-400 font-semibold text-xs"></span>
+            </div>
+            <div class="flex justify-between items-center pb-2 border-b border-slate-700/50">
+              <span class="text-slate-400">Security Clearance:</span>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold text-[11px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Verified via Email OTP
+              </span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Cloud Storage:</span>
+              <span class="text-slate-300 font-mono text-[11px]">MongoDB Atlas (AWS ap-south-1)</span>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="space-y-2">
+            <!-- 1-Click Switch to Admin Dashboard -->
+            <button id="btn-quick-admin" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl text-xs transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span>Open Studio Admin Dashboard</span>
+            </button>
+
+            <div class="flex gap-2">
+              <button id="btn-test-api" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 px-3 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Test JWT Token
+              </button>
+              <button id="btn-logout" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium py-2.5 px-4 rounded-xl text-xs transition border border-rose-500/30 flex items-center justify-center gap-1.5">
+                Sign Out
+              </button>
+            </div>
+          </div>
+
+          <div id="api-response-box" class="hidden p-3 rounded-xl bg-slate-950/80 border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 2: ADMIN PORTAL (MASTER DASHBOARD & MONGODB ANALYTICS) -->
+    <!-- ============================================================== -->
+    <section id="view-admin" class="w-full hidden">
+      
+      <!-- SUB-VIEW A: ADMIN MASTER PASSWORD UNLOCK -->
+      <div id="admin-unlock-view" class="w-full max-w-md mx-auto my-auto">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
+          <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mb-3 shadow-inner">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div class="text-xs uppercase tracking-widest font-semibold text-indigo-400">Restricted Access</div>
+            <h2 class="text-2xl font-bold text-white mt-1">Studio Admin Portal</h2>
+            <p class="text-xs text-slate-400 mt-1">Enter master password to access live MongoDB Atlas database</p>
+          </div>
+
+          <div id="admin-login-error" class="hidden mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs text-center font-medium"></div>
+
+          <form id="admin-login-form" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Master Password</label>
+              <input type="password" id="admin-password-input" placeholder="••••••••••••" autofocus
+                class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+
+            <button type="submit" id="btn-admin-login-submit"
+              class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
+              <span id="btn-admin-login-text">Unlock Database Dashboard</span>
+              <svg id="btn-admin-login-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+            </button>
+          </form>
+
+          <div class="mt-5 text-center">
+            <button id="btn-back-to-user" class="text-xs text-slate-500 hover:text-slate-300 transition">← Back to User Portal</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW B: FULL LIVE ADMIN DASHBOARD -->
+      <div id="admin-data-view" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
+        
+        <!-- Header Strip Inside Admin -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="text-2xl font-bold text-white tracking-tight">Studio Master Control</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Real-time MongoDB Atlas analytics, user management, and leads export</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-admin-refresh" class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl text-xs font-semibold transition border border-slate-800 flex items-center gap-1.5 shadow-sm">
+              <svg id="admin-refresh-icon" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+
+            <button id="btn-admin-export" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow-md shadow-indigo-600/20 flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export CSV
+            </button>
+
+            <button id="btn-admin-lock" class="bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-700 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Lock Admin
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <!-- Card 1: Total Users -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Total Users</span>
+              <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+            </div>
+            <div id="stat-total-users" class="text-3xl font-extrabold text-white">--</div>
+            <p class="text-[11px] text-slate-500 mt-1">Live records in MongoDB Atlas</p>
+          </div>
+
+          <!-- Card 2: Verified Leads -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Verified OTP</span>
+              <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div id="stat-verified-users" class="text-3xl font-extrabold text-emerald-400">--</div>
+            <p class="text-[11px] text-slate-500 mt-1">100% Genuine Email Verified</p>
+          </div>
+
+          <!-- Card 3: Total Sessions -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Total Logins</span>
+              <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+            <div id="stat-total-logins" class="text-3xl font-extrabold text-amber-300">--</div>
+            <p class="text-[11px] text-slate-500 mt-1">Successful user sessions</p>
+          </div>
+
+          <!-- Card 4: Today's Signups -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Today's Signups</span>
+              <div class="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+            <div id="stat-today-users" class="text-3xl font-extrabold text-purple-300">--</div>
+            <p class="text-[11px] text-slate-500 mt-1">Joined in the last 24 hours</p>
+          </div>
+
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative max-w-md">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input type="text" id="admin-search-input" placeholder="Search registered users by email..."
+            class="w-full bg-slate-900/90 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+        </div>
+
+        <!-- Live Users Table -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl overflow-hidden backdrop-blur">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950/60 uppercase text-[10px] tracking-wider font-semibold text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th scope="col" class="px-6 py-4">User Email</th>
+                  <th scope="col" class="px-6 py-4">Status</th>
+                  <th scope="col" class="px-6 py-4">Total Logins</th>
+                  <th scope="col" class="px-6 py-4">Last Active</th>
+                  <th scope="col" class="px-6 py-4">Registered Date</th>
+                  <th scope="col" class="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-table-body" class="divide-y divide-slate-800/60">
+                <!-- Dynamically populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty State -->
+          <div id="admin-empty-state" class="hidden py-12 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-500 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-300">No users found</h3>
+            <p class="text-xs text-slate-500 mt-1">Users will appear here as soon as they complete OTP login.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Unified Footer -->
+  <footer class="border-t border-slate-900 py-4 text-center text-xs text-slate-500">
+    Aryan Jangir Studio • Design • Development • Media Production • Unified Platform
   </footer>
 
   <script src="app.js"></script>

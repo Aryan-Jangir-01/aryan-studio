@@ -1,9 +1,121 @@
-// State Variables
+// =============================================================
+// ARYAN JANGIR STUDIO - UNIFIED PORTAL (USER + ADMIN)
+// =============================================================
+
+// -------------------------------------------------------------
+// 1. Toast Notification System
+// -------------------------------------------------------------
+const toast = document.getElementById('toast');
+let toastTimeout = null;
+
+function showToast(message, type = 'info') {
+  clearTimeout(toastTimeout);
+  toast.classList.remove('hidden', 'bg-rose-500/20', 'border-rose-500/40', 'text-rose-200', 'bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-200', 'bg-indigo-500/20', 'border-indigo-500/40', 'text-indigo-200');
+
+  if (type === 'error') {
+    toast.classList.add('bg-rose-500/20', 'border-rose-500/40', 'text-rose-200');
+  } else if (type === 'success') {
+    toast.classList.add('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-200');
+  } else {
+    toast.classList.add('bg-indigo-500/20', 'border-indigo-500/40', 'text-indigo-200');
+  }
+
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+
+  // Auto-hide toast after 6 seconds
+  toastTimeout = setTimeout(() => {
+    hideToast();
+  }, 6000);
+}
+
+function hideToast() {
+  toast.classList.add('hidden');
+}
+
+// -------------------------------------------------------------
+// 2. Tab Switching Navigation (User Portal vs Admin Dashboard)
+// -------------------------------------------------------------
+const tabBtnUser = document.getElementById('tab-btn-user');
+const tabBtnAdmin = document.getElementById('tab-btn-admin');
+const viewUser = document.getElementById('view-user');
+const viewAdmin = document.getElementById('view-admin');
+const activeTabBadge = document.getElementById('active-tab-badge');
+
+let currentActiveTab = 'user';
+
+function switchTab(targetTab, updateHash = true) {
+  currentActiveTab = targetTab;
+  hideToast();
+
+  const activeBtnClasses = ['bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-600/30'];
+  const inactiveBtnClasses = ['text-slate-400', 'hover:text-slate-200'];
+
+  if (targetTab === 'admin') {
+    // Show Admin, Hide User
+    viewUser.classList.add('hidden');
+    viewAdmin.classList.remove('hidden');
+
+    tabBtnAdmin.classList.remove(...inactiveBtnClasses);
+    tabBtnAdmin.classList.add(...activeBtnClasses);
+
+    tabBtnUser.classList.remove(...activeBtnClasses);
+    tabBtnUser.classList.add(...inactiveBtnClasses);
+
+    activeTabBadge.textContent = 'Admin Dashboard';
+    activeTabBadge.className = 'px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30';
+
+    if (updateHash) {
+      history.replaceState(null, '', '#admin');
+    }
+
+    // Check if admin is unlocked
+    if (adminToken) {
+      showAdminDashboard();
+    } else {
+      showAdminUnlock();
+    }
+
+  } else {
+    // Show User, Hide Admin
+    viewAdmin.classList.add('hidden');
+    viewUser.classList.remove('hidden');
+
+    tabBtnUser.classList.remove(...inactiveBtnClasses);
+    tabBtnUser.classList.add(...activeBtnClasses);
+
+    tabBtnAdmin.classList.remove(...activeBtnClasses);
+    tabBtnAdmin.classList.add(...inactiveBtnClasses);
+
+    activeTabBadge.textContent = 'User Portal';
+    activeTabBadge.className = 'px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md bg-indigo-500/20 text-indigo-400 border border-indigo-500/30';
+
+    if (updateHash) {
+      history.replaceState(null, '', '#user');
+    }
+  }
+}
+
+tabBtnUser.addEventListener('click', () => switchTab('user'));
+tabBtnAdmin.addEventListener('click', () => switchTab('admin'));
+
+const btnBackToUser = document.getElementById('btn-back-to-user');
+if (btnBackToUser) {
+  btnBackToUser.addEventListener('click', () => switchTab('user'));
+}
+
+const btnQuickAdmin = document.getElementById('btn-quick-admin');
+if (btnQuickAdmin) {
+  btnQuickAdmin.addEventListener('click', () => switchTab('admin'));
+}
+
+// -------------------------------------------------------------
+// 3. USER PORTAL: EMAIL OTP AUTHENTICATION
+// -------------------------------------------------------------
 let currentEmail = '';
 let resendTimerInterval = null;
 let resendCooldown = 60; // 1 minute countdown
 
-// DOM Elements
 const stepEmail = document.getElementById('step-email');
 const stepOtp = document.getElementById('step-otp');
 const stepDashboard = document.getElementById('step-dashboard');
@@ -30,33 +142,8 @@ const sessionEmail = document.getElementById('session-email');
 const btnTestApi = document.getElementById('btn-test-api');
 const btnLogout = document.getElementById('btn-logout');
 const apiResponseBox = document.getElementById('api-response-box');
-const toast = document.getElementById('toast');
 
-// -------------------------------------------------------------
-// Toast Notification
-// -------------------------------------------------------------
-function showToast(message, type = 'info') {
-  toast.classList.remove('hidden', 'bg-rose-500/20', 'border-rose-500/40', 'text-rose-200', 'bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-200', 'bg-indigo-500/20', 'border-indigo-500/40', 'text-indigo-200');
-  toast.classList.add('border');
-
-  if (type === 'error') {
-    toast.classList.add('bg-rose-500/20', 'border-rose-500/40', 'text-rose-200');
-  } else if (type === 'success') {
-    toast.classList.add('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-200');
-  } else {
-    toast.classList.add('bg-indigo-500/20', 'border-indigo-500/40', 'text-indigo-200');
-  }
-
-  toast.textContent = message;
-}
-
-function hideToast() {
-  toast.classList.add('hidden');
-}
-
-// -------------------------------------------------------------
 // Send Email OTP Handler
-// -------------------------------------------------------------
 async function handleSendOtp() {
   const email = emailInput.value.trim().toLowerCase();
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -107,7 +194,7 @@ async function handleSendOtp() {
   } catch (err) {
     console.error('Send OTP Error:', err);
     if (err.name === 'AbortError') {
-      showToast('Timeout: Server se connect nahi ho paya. Render Environment Variables check karein.', 'error');
+      showToast('Timeout: Server ko connect karne me samay lag raha hai. Dobara try karein.', 'error');
     } else {
       showToast('Server connection error. Kripya dobara try karein.', 'error');
     }
@@ -124,12 +211,10 @@ emailInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleSendOtp();
 });
 
-// -------------------------------------------------------------
-// Resend OTP Countdown (1 Minute)
-// -------------------------------------------------------------
+// 1-Minute Resend Countdown
 function startResendCountdown() {
   clearInterval(resendTimerInterval);
-  resendCooldown = 60; // 1 minute (60 seconds)
+  resendCooldown = 60;
   resendSeconds.textContent = resendCooldown;
   resendCountdownText.classList.remove('hidden');
   btnResend.classList.add('hidden');
@@ -158,9 +243,7 @@ btnChangeEmail.addEventListener('click', () => {
   emailInput.focus();
 });
 
-// -------------------------------------------------------------
 // 6-Digit OTP Box Management
-// -------------------------------------------------------------
 function clearOtpBoxes() {
   otpBoxes.forEach((box) => {
     box.value = '';
@@ -222,9 +305,7 @@ otpBoxes.forEach((box, index) => {
   });
 });
 
-// -------------------------------------------------------------
 // Verify OTP Handler
-// -------------------------------------------------------------
 async function handleVerifyOtp() {
   const otpCode = getEnteredOtp();
 
@@ -239,7 +320,7 @@ async function handleVerifyOtp() {
   hideToast();
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
     const res = await fetch('/api/auth/verify-otp', {
@@ -266,7 +347,12 @@ async function handleVerifyOtp() {
     localStorage.setItem('auth_email', currentEmail);
 
     showToast('Email verified successfully!', 'success');
-    renderDashboard(currentEmail, data.token);
+    renderUserDashboard(currentEmail, data.token);
+
+    // Also auto-refresh admin stats if admin view is unlocked
+    if (adminToken) {
+      loadAdminStats();
+    }
 
   } catch (err) {
     console.error('Verify error:', err);
@@ -285,65 +371,372 @@ async function handleVerifyOtp() {
 
 btnVerifyOtp.addEventListener('click', handleVerifyOtp);
 
-// -------------------------------------------------------------
-// Render Dashboard
-// -------------------------------------------------------------
-function renderDashboard(email, token) {
-  clearInterval(resendTimerInterval);
+// Render User Dashboard
+function renderUserDashboard(email, token) {
+  sessionEmail.textContent = email;
   stepEmail.classList.add('hidden');
   stepOtp.classList.add('hidden');
   stepDashboard.classList.remove('hidden');
 
-  sessionEmail.textContent = email;
+  btnTestApi.onclick = async () => {
+    try {
+      btnTestApi.disabled = true;
+      btnTestApi.textContent = 'Testing Token...';
+
+      const res = await fetch('/api/auth/test-token', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const resData = await res.json();
+
+      apiResponseBox.classList.remove('hidden');
+      apiResponseBox.innerHTML = `
+        <div class="text-emerald-400 font-semibold mb-1">Status 200 OK - Token Valid</div>
+        <pre>${JSON.stringify(resData, null, 2)}</pre>
+      `;
+      showToast('Protected Route Verification Success!', 'success');
+    } catch (err) {
+      showToast('Failed to call protected API.', 'error');
+    } finally {
+      btnTestApi.disabled = false;
+      btnTestApi.textContent = 'Test JWT Token';
+    }
+  };
+
+  btnLogout.onclick = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_email');
+    stepDashboard.classList.add('hidden');
+    stepEmail.classList.remove('hidden');
+    apiResponseBox.classList.add('hidden');
+    emailInput.value = '';
+    showToast('Signed out successfully.', 'info');
+  };
 }
 
 // -------------------------------------------------------------
-// Test Protected Route
+// 4. STUDIO ADMIN PORTAL: MASTER DATABASE & LIVE ANALYTICS
 // -------------------------------------------------------------
-btnTestApi.addEventListener('click', async () => {
-  const token = localStorage.getItem('auth_token');
-  if (!token) return;
+let adminToken = localStorage.getItem('admin_token');
+let currentAdminUsers = [];
 
-  apiResponseBox.classList.remove('hidden');
-  apiResponseBox.textContent = 'Testing GET /api/auth/session...';
+const adminUnlockView = document.getElementById('admin-unlock-view');
+const adminDataView = document.getElementById('admin-data-view');
+const adminLoginForm = document.getElementById('admin-login-form');
+const adminPasswordInput = document.getElementById('admin-password-input');
+const adminLoginError = document.getElementById('admin-login-error');
+const btnAdminLoginSubmit = document.getElementById('btn-admin-login-submit');
+const btnAdminLoginText = document.getElementById('btn-admin-login-text');
+const btnAdminLoginSpinner = document.getElementById('btn-admin-login-spinner');
+
+const statTotalUsers = document.getElementById('stat-total-users');
+const statVerifiedUsers = document.getElementById('stat-verified-users');
+const statTotalLogins = document.getElementById('stat-total-logins');
+const statTodayUsers = document.getElementById('stat-today-users');
+
+const adminSearchInput = document.getElementById('admin-search-input');
+const btnAdminRefresh = document.getElementById('btn-admin-refresh');
+const adminRefreshIcon = document.getElementById('admin-refresh-icon');
+const btnAdminExport = document.getElementById('btn-admin-export');
+const btnAdminLock = document.getElementById('btn-admin-lock');
+const adminUsersTableBody = document.getElementById('admin-users-table-body');
+const adminEmptyState = document.getElementById('admin-empty-state');
+
+function showAdminUnlock() {
+  adminDataView.classList.add('hidden');
+  adminUnlockView.classList.remove('hidden');
+  if (adminPasswordInput) {
+    adminPasswordInput.value = '';
+    adminPasswordInput.focus();
+  }
+}
+
+function showAdminDashboard() {
+  adminUnlockView.classList.add('hidden');
+  adminDataView.classList.remove('hidden');
+  loadAdminStats();
+  loadAdminUsers();
+}
+
+function lockAdmin() {
+  localStorage.removeItem('admin_token');
+  adminToken = null;
+  showAdminUnlock();
+  showToast('Admin portal locked.', 'info');
+}
+
+if (btnAdminLock) {
+  btnAdminLock.addEventListener('click', lockAdmin);
+}
+
+// Admin Master Password Login Form
+if (adminLoginForm) {
+  adminLoginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = adminPasswordInput.value.trim();
+
+    if (!password) return;
+
+    adminLoginError.classList.add('hidden');
+    btnAdminLoginSubmit.disabled = true;
+    btnAdminLoginText.textContent = 'Verifying Password...';
+    btnAdminLoginSpinner.classList.remove('hidden');
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        adminLoginError.textContent = data.message || 'Incorrect Admin Password.';
+        adminLoginError.classList.remove('hidden');
+        adminPasswordInput.value = '';
+        adminPasswordInput.focus();
+        return;
+      }
+
+      // Success!
+      adminToken = data.token;
+      localStorage.setItem('admin_token', adminToken);
+      showToast('Admin Portal Unlocked! Connected to MongoDB Atlas.', 'success');
+      showAdminDashboard();
+
+    } catch (err) {
+      adminLoginError.textContent = 'Server connection error. Check your network.';
+      adminLoginError.classList.remove('hidden');
+    } finally {
+      btnAdminLoginSubmit.disabled = false;
+      btnAdminLoginText.textContent = 'Unlock Database Dashboard';
+      btnAdminLoginSpinner.classList.add('hidden');
+    }
+  });
+}
+
+// Format Date Helper
+function formatDate(dateStr) {
+  if (!dateStr) return 'Never';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Fetch Admin Stats
+async function loadAdminStats() {
+  if (!adminToken) return;
 
   try {
-    const res = await fetch('/api/auth/session', {
-      headers: { 'Authorization': `Bearer ${token}` }
+    const res = await fetch('/api/admin/stats', {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
     });
+
+    if (res.status === 401 || res.status === 403) {
+      lockAdmin();
+      return;
+    }
+
     const data = await res.json();
-    apiResponseBox.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    apiResponseBox.textContent = 'Error testing protected route.';
+    if (data.success && data.stats) {
+      statTotalUsers.textContent = data.stats.totalUsers;
+      statVerifiedUsers.textContent = data.stats.verifiedUsers;
+      statTotalLogins.textContent = data.stats.totalLogins;
+      statTodayUsers.textContent = data.stats.todayUsers;
+    }
+  } catch (e) {
+    console.error('Failed to load admin stats:', e);
+  }
+}
+
+// Fetch Admin Users List
+async function loadAdminUsers(search = '') {
+  if (!adminToken) return;
+
+  if (adminRefreshIcon) {
+    adminRefreshIcon.classList.add('animate-spin');
+  }
+
+  try {
+    const url = search ? `/api/admin/users?search=${encodeURIComponent(search)}` : '/api/admin/users';
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      lockAdmin();
+      return;
+    }
+
+    const data = await res.json();
+    currentAdminUsers = data.users || [];
+    renderAdminUsersTable(currentAdminUsers);
+
+  } catch (e) {
+    console.error('Failed to load admin users:', e);
+  } finally {
+    if (adminRefreshIcon) {
+      adminRefreshIcon.classList.remove('animate-spin');
+    }
+  }
+}
+
+// Render Admin Users Table
+function renderAdminUsersTable(users) {
+  if (!adminUsersTableBody) return;
+  adminUsersTableBody.innerHTML = '';
+
+  if (!users || users.length === 0) {
+    adminEmptyState.classList.remove('hidden');
+    return;
+  }
+
+  adminEmptyState.classList.add('hidden');
+
+  users.forEach((user) => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-800/40 transition duration-150';
+
+    tr.innerHTML = `
+      <td class="px-6 py-4 font-mono font-medium text-slate-100 flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xs uppercase">
+          ${user.email.charAt(0)}
+        </div>
+        <span>${user.email}</span>
+      </td>
+      <td class="px-6 py-4">
+        ${user.isVerified 
+          ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800/50">
+               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Verified
+             </span>`
+          : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-950 text-amber-300 border border-amber-800/50">
+               Pending
+             </span>`
+        }
+      </td>
+      <td class="px-6 py-4 font-mono text-slate-300">
+        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">${user.loginCount || 1}</span>
+      </td>
+      <td class="px-6 py-4 text-slate-400">
+        ${formatDate(user.lastLoginAt)}
+      </td>
+      <td class="px-6 py-4 text-slate-400">
+        ${formatDate(user.createdAt)}
+      </td>
+      <td class="px-6 py-4 text-right">
+        <button onclick="handleAdminDeleteUser('${user._id}', '${user.email}')" 
+          class="text-rose-400 hover:text-rose-300 font-medium hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition border border-transparent hover:border-rose-500/20 text-xs">
+          Delete
+        </button>
+      </td>
+    `;
+
+    adminUsersTableBody.appendChild(tr);
+  });
+}
+
+// Delete User from Admin Table
+window.handleAdminDeleteUser = async (id, email) => {
+  const confirmed = confirm(`Are you sure you want to delete user: ${email}?`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`User ${email} deleted successfully.`, 'info');
+      loadAdminStats();
+      loadAdminUsers(adminSearchInput ? adminSearchInput.value.trim() : '');
+    } else {
+      showToast(data.message || 'Failed to delete user.', 'error');
+    }
+  } catch (e) {
+    showToast('Error connecting to server.', 'error');
+  }
+};
+
+// Admin Search & Refresh Listeners
+let adminSearchTimeout = null;
+if (adminSearchInput) {
+  adminSearchInput.addEventListener('input', (e) => {
+    clearTimeout(adminSearchTimeout);
+    adminSearchTimeout = setTimeout(() => {
+      loadAdminUsers(e.target.value.trim());
+    }, 300);
+  });
+}
+
+if (btnAdminRefresh) {
+  btnAdminRefresh.addEventListener('click', () => {
+    loadAdminStats();
+    loadAdminUsers(adminSearchInput ? adminSearchInput.value.trim() : '');
+    showToast('Dashboard data refreshed.', 'info');
+  });
+}
+
+// Export to CSV
+if (btnAdminExport) {
+  btnAdminExport.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/admin/export', {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+
+      if (!res.ok) {
+        showToast('Failed to export CSV.', 'error');
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aryan_studio_users_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Users exported to CSV successfully!', 'success');
+
+    } catch (err) {
+      showToast('Export error: ' + err.message, 'error');
+    }
+  });
+}
+
+// -------------------------------------------------------------
+// 5. Initialize Application State & Routing
+// -------------------------------------------------------------
+window.addEventListener('DOMContentLoaded', () => {
+  // Check User Auth
+  const savedToken = localStorage.getItem('auth_token');
+  const savedEmail = localStorage.getItem('auth_email');
+  if (savedToken && savedEmail) {
+    renderUserDashboard(savedEmail, savedToken);
+  }
+
+  // Handle Routing (/admin or #admin)
+  const isDirectAdmin = window.location.pathname.startsWith('/admin') || window.location.hash === '#admin';
+  if (isDirectAdmin) {
+    switchTab('admin', false);
+  } else {
+    switchTab('user', false);
   }
 });
 
-btnLogout.addEventListener('click', () => {
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('auth_email');
-  stepDashboard.classList.add('hidden');
-  stepEmail.classList.remove('hidden');
-  apiResponseBox.classList.add('hidden');
-  emailInput.value = '';
-  clearOtpBoxes();
-  showToast('Logged out successfully.', 'info');
-});
-
-// Check if user is already authenticated
-window.addEventListener('DOMContentLoaded', async () => {
-  const token = localStorage.getItem('auth_token');
-  const savedEmail = localStorage.getItem('auth_email');
-
-  if (token && savedEmail) {
-    try {
-      const res = await fetch('/api/auth/session', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        renderDashboard(savedEmail, token);
-      } else {
-        localStorage.removeItem('auth_token');
-      }
-    } catch (e) {}
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#admin') {
+    switchTab('admin', false);
+  } else {
+    switchTab('user', false);
   }
 });

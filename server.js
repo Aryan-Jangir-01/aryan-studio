@@ -392,9 +392,9 @@ app.get('/api/auth/session', authenticateToken, (req, res) => {
 // ADMIN PORTAL & APIS
 // =============================================================
 
-// Serve Admin UI on /admin
+// Serve Unified Portal on /admin (Auto-activates Admin Mode)
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Middleware: Authenticate Admin Token

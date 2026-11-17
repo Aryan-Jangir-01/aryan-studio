@@ -1,30 +1,29 @@
-# Implementation Plan: Aryan Jangir Studio Admin Panel
+# Implementation Plan: Unified Studio & Admin Dashboard
 
 ## 1. Objective
-Build a secure, professional, responsive Admin Dashboard for Aryan Jangir Studio featuring:
-- Secret URL route: `/admin`
-- Password-protected authentication with JWT session token
-- Real-time connection to MongoDB Atlas Cloud database
-- Live stats overview (Total Users, Verified Users, Total Logins, Today's Activity)
-- Interactive searchable users table with real-time filtering
-- 1-Click CSV/Excel data export
-- Delete user capability
-- Clean modern glassmorphic dark UI matching the studio aesthetic
+Merge the User Authentication Portal and the Admin Dashboard into a single, cohesive, responsive Single Page Application (SPA) at `public/index.html`.
 
-## 2. Architecture & API Endpoints
-- **Backend (`server.js`):**
-  - `POST /api/admin/login` -> Authenticates admin password (configured in `.env` as `ADMIN_PASSWORD`) and issues an admin JWT token
-  - `GET  /api/admin/stats` -> Returns user counts & activity metrics from MongoDB
-  - `GET  /api/admin/users` -> Fetches all user documents from MongoDB with search query support
-  - `DELETE /api/admin/users/:id` -> Removes a user record from MongoDB
-  - `GET  /api/admin/export` -> Exports all database records as downloadable CSV
-- **Frontend (`public/admin.html`, `public/admin.js`):**
-  - Admin login gate with error handling
-  - Live dashboard with stats cards, table view, search filter, CSV export, and logout
+## 2. Key Architecture & Features
+- **Unified Header & Navigation Bar:**
+  - Aryan Jangir Studio branding + live MongoDB Atlas Cloud status indicator.
+  - Tab Switcher: `[👤 User Portal]` and `[🛡️ Admin Dashboard]`.
+  - Hash-based navigation (`/#user`, `/#admin`) so direct `/admin` visits automatically land on Admin mode.
+- **Unified User Portal:**
+  - Step 1: Email input with validation.
+  - Step 2: 6-digit auto-advancing OTP boxes with 60s cooldown.
+  - Step 3: Verified User Profile & protected session tester, plus direct shortcut to Admin Dashboard.
+- **Unified Admin Dashboard:**
+  - Secure unlock card (master password `aryan@admin2026`).
+  - 4 KPI Stat Cards (Total Users, Verified OTPs, Total Sessions, Today's Signups).
+  - Search filter by email.
+  - 1-Click CSV/Excel data export.
+  - Interactive table of registered users with deletion support.
+  - Admin Lock / Sign out button.
 
 ## 3. Execution Roadmap
-- [x] Task 1: Update `.env` with `ADMIN_PASSWORD=aryan@admin2026` and `.env.example`.
-- [x] Task 2: Implement Admin backend APIs with authentication middleware in `server.js`.
-- [x] Task 3: Build `public/admin.html` and `public/admin.js` with responsive Tailwind UI, search, stats, and CSV export.
-- [x] Task 4: Test and verify admin login, stats, data fetching, export, and route protection.
-- [x] Task 5: Push updates to GitHub repository.
+- [x] Task 1: Spec and architecture definition in PLAN.md.
+- [ ] Task 2: Build unified UI in `public/index.html` with Tailwind & responsive layouts.
+- [ ] Task 3: Combine client logic into `public/app.js` (tab switching, OTP auth, admin stats/table/export).
+- [ ] Task 4: Update `server.js` route for `/admin` to redirect seamlessly to `/#admin`.
+- [ ] Task 5: Verify all automated test suites and live interactions.
+- [ ] Task 6: Commit and push changes to GitHub (`Aryan-Jangir-01/aryan-studio`).
