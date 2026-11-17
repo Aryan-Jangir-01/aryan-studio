@@ -442,6 +442,7 @@ const adminUsersTableBody = document.getElementById('admin-users-table-body');
 const adminEmptyState = document.getElementById('admin-empty-state');
 
 // Admin 2FA DOM Elements
+const adminEmailInput = document.getElementById('admin-email-input');
 const adminStepPassword = document.getElementById('admin-step-password');
 const adminStepOtp = document.getElementById('admin-step-otp');
 const adminDisplayEmail = document.getElementById('admin-display-email');
@@ -496,17 +497,18 @@ if (btnAdminLock) {
   btnAdminLock.addEventListener('click', lockAdmin);
 }
 
-// Admin Step 1: Password Submit -> Dispatches 2FA Code
+// Admin Step 1: Email & Password Submit -> Dispatches 2FA Code
 if (adminLoginForm) {
   adminLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const email = adminEmailInput ? adminEmailInput.value.trim() : '';
     const password = adminPasswordInput.value.trim();
 
-    if (!password) return;
+    if (!email || !password) return;
 
     adminLoginError.classList.add('hidden');
     btnAdminLoginSubmit.disabled = true;
-    btnAdminLoginText.textContent = 'Verifying Password & Sending 2FA Code...';
+    btnAdminLoginText.textContent = 'Verifying & Sending Admin OTP...';
     btnAdminLoginSpinner.classList.remove('hidden');
 
     const controller = new AbortController();
@@ -516,7 +518,7 @@ if (adminLoginForm) {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -524,7 +526,7 @@ if (adminLoginForm) {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        adminLoginError.textContent = data.message || 'Incorrect Admin Password.';
+        adminLoginError.textContent = data.message || 'Incorrect Admin Email or Password.';
         adminLoginError.classList.remove('hidden');
         adminPasswordInput.value = '';
         adminPasswordInput.focus();
@@ -557,7 +559,7 @@ if (adminLoginForm) {
     } finally {
       clearTimeout(timeoutId);
       btnAdminLoginSubmit.disabled = false;
-      btnAdminLoginText.textContent = 'Verify Password & Send 2FA Code';
+      btnAdminLoginText.textContent = 'Verify & Send Admin OTP';
       btnAdminLoginSpinner.classList.add('hidden');
     }
   });

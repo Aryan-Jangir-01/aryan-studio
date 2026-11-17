@@ -224,9 +224,9 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <div class="text-xs uppercase tracking-widest font-semibold text-indigo-400">Restricted Access</div>
+            <div class="text-xs uppercase tracking-widest font-semibold text-indigo-400">Security Clearance</div>
             <h2 class="text-2xl font-bold text-white mt-1">Studio Admin Portal</h2>
-            <p class="text-xs text-slate-400 mt-1">Enter master password to access live MongoDB Atlas database</p>
+            <p class="text-xs text-slate-400 mt-1">2-Step Verification: Master Password + Email OTP</p>
           </div>
 
           <div id="admin-login-error" class="hidden mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs text-center font-medium"></div>
@@ -235,14 +235,20 @@
           <div id="admin-step-password">
             <form id="admin-login-form" class="space-y-4">
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Master Password</label>
-                <input type="password" id="admin-password-input" placeholder="••••••••••••" autofocus
-                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Admin Email</label>
+                <input type="email" id="admin-email-input" value="aryanjangir0805@gmail.com" required
+                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-mono text-xs">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Master Password</label>
+                <input type="password" id="admin-password-input" placeholder="••••••••••••" autofocus required
+                  class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
               </div>
 
               <button type="submit" id="btn-admin-login-submit"
                 class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
-                <span id="btn-admin-login-text">Verify Password & Send 2FA Code</span>
+                <span id="btn-admin-login-text">Verify & Send Admin OTP</span>
                 <svg id="btn-admin-login-spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>

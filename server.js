@@ -471,28 +471,32 @@ function authenticateAdmin(req, res, next) {
   }
 
   jwt.verify(token, JWT_SECRET, (err, admin) => {
-    if (err || !admin || admin.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Forbidden. Admin privileges required.' });
+    if (err || !admin || admin.role !== 'admin' || !admin.is2FA) {
+      return res.status(403).json({ success: false, message: 'Forbidden. Admin 2FA authentication required.' });
     }
     req.admin = admin;
     next();
   });
 }
 
-// POST /api/admin/login (Step 1 of 2FA: Verify Password -> Dispatch OTP)
+// POST /api/admin/login (Step 1 of 2FA: Verify Email & Password -> Dispatch OTP)
 app.post('/api/admin/login', async (req, res) => {
   try {
-    const { password } = req.body;
+    const { email, password } = req.body;
     const expectedPassword = process.env.ADMIN_PASSWORD || 'aryan@admin2026';
 
-    if (!password || password.trim() !== expectedPassword.trim()) {
+    const configuredAdminEmail = (process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'aryanjangir0805@gmail.com').trim().toLowerCase();
+    const allowedAdminEmails = [configuredAdminEmail, 'aryanjangir1203@gmail.com'];
+    const requestedEmail = email ? email.trim().toLowerCase() : configuredAdminEmail;
+
+    if (!allowedAdminEmails.includes(requestedEmail) || !password || password.trim() !== expectedPassword.trim()) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid Admin Password.'
+        message: 'Invalid Admin Email or Password.'
       });
     }
 
-    const adminEmail = (process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'aryanjangir0805@gmail.com').trim();
+    const adminEmail = requestedEmail;
     const now = Date.now();
 
     // Generate secure 6-digit OTP
@@ -591,9 +595,9 @@ app.post('/api/admin/verify-otp', (req, res) => {
     // Verified! Delete temp session
     adminOtpStore.delete(tempSessionId);
 
-    // Issue Master Admin JWT token
+    // Issue Master Admin JWT token with 2FA verified flag
     const token = jwt.sign(
-      { role: 'admin', user: 'aryan', loggedInAt: new Date().toISOString() },
+      { role: 'admin', user: 'aryan', is2FA: true, loggedInAt: new Date().toISOString() },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
