@@ -461,6 +461,26 @@ const adminResendCountdownText = document.getElementById('admin-resend-countdown
 const adminResendSeconds = document.getElementById('admin-resend-seconds');
 const btnAdminResend = document.getElementById('btn-admin-resend');
 
+// Show/Hide Password Toggle
+const btnTogglePassword = document.getElementById('btn-toggle-password');
+const eyeIconShow = document.getElementById('eye-icon-show');
+const eyeIconHide = document.getElementById('eye-icon-hide');
+
+if (btnTogglePassword && adminPasswordInput) {
+  btnTogglePassword.addEventListener('click', () => {
+    const isPassword = adminPasswordInput.type === 'password';
+    adminPasswordInput.type = isPassword ? 'text' : 'password';
+
+    if (isPassword) {
+      eyeIconShow.classList.add('hidden');
+      eyeIconHide.classList.remove('hidden');
+    } else {
+      eyeIconShow.classList.remove('hidden');
+      eyeIconHide.classList.add('hidden');
+    }
+  });
+}
+
 let adminTempSessionId = null;
 let adminResendTimerInterval = null;
 let adminResendCooldown = 60;
