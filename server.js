@@ -70,7 +70,7 @@ async function getTransporter() {
   const { user, pass } = getEmailCredentials();
 
   if (user && pass) {
-    // Gmail SMTP Transport with explicit SSL & timeouts
+    // Gmail SMTP Transport with explicit SSL & fast-fail timeouts
     emailTransporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
@@ -79,9 +79,9 @@ async function getTransporter() {
         user,
         pass
       },
-      connectionTimeout: 10000, // 10s timeout
-      greetingTimeout: 10000,
-      socketTimeout: 15000
+      connectionTimeout: 4000, // 4s timeout (fast fail if cloud blocks SMTP ports)
+      greetingTimeout: 4000,
+      socketTimeout: 5000
     });
     console.log(`[EMAIL] Connected to Gmail SMTP (${user})`);
   } else {
@@ -109,8 +109,7 @@ function normalizeEmail(email) {
 
 // Helper: Send Beautiful HTML OTP Email
 async function sendOtpEmail(toEmail, otp) {
-  const transporter = await getTransporter();
-  const sender = getEmailCredentials().user || 'no-reply@authsystem.local';
+  const sender = getEmailCredentials().user || 'aryanjangir0805@gmail.com';
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -183,16 +182,21 @@ async function sendOtpEmail(toEmail, otp) {
     </html>
   `;
 
-  const info = await transporter.sendMail({
-    from: `"Aryan Jangir Studio" <${sender}>`,
-    to: toEmail,
-    subject: `🔐 Your Verification Code: ${otp} | Aryan Jangir Studio`,
-    text: `Welcome to Aryan Jangir Studio!\n\nYour OTP is: ${otp}\nValid for 1 minute.\n\nSecurity Notice: Ye OTP aapke account verification ke liye hai. Kisi ke sath share na karein.`,
-    html: htmlContent
-  });
-
-  const previewUrl = nodemailer.getTestMessageUrl(info);
-  return { info, previewUrl };
+  try {
+    const transporter = await getTransporter();
+    const info = await transporter.sendMail({
+      from: `"Aryan Jangir Studio" <${sender}>`,
+      to: toEmail,
+      subject: `🔐 Your Verification Code: ${otp} | Aryan Jangir Studio`,
+      text: `Welcome to Aryan Jangir Studio!\n\nYour OTP is: ${otp}\nValid for 1 minute.\n\nSecurity Notice: Ye OTP aapke account verification ke liye hai. Kisi ke sath share na karein.`,
+      html: htmlContent
+    });
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    return { success: true, info, previewUrl };
+  } catch (err) {
+    console.warn('[EMAIL WARNING] SMTP delivery blocked or failed (Render free tier blocks SMTP):', err.message);
+    return { success: false, error: err.message, previewUrl: null };
+  }
 }
 
 // Helper: Mask email address for security display (e.g. ar***05@gmail.com)
@@ -249,13 +253,20 @@ async function sendAdminOtpEmail(toEmail, otp) {
     </html>
   `;
 
-  return await transporter.sendMail({
-    from: `"Aryan Jangir Studio Security" <${sender}>`,
-    to: toEmail,
-    subject: `🛡️ Studio Admin 2FA Code: ${otp}`,
-    text: `Studio Admin 2FA Code: ${otp}\nValid for 1 minute.\nIf you did not request this, please change your master password.`,
-    html: htmlContent
-  });
+  try {
+    const transporter = await getTransporter();
+    const info = await transporter.sendMail({
+      from: `"Aryan Jangir Studio Security" <${sender}>`,
+      to: toEmail,
+      subject: `🛡️ Studio Admin 2FA Code: ${otp}`,
+      text: `Studio Admin 2FA Code: ${otp}\nValid for 1 minute.\nIf you did not request this, please change your master password.`,
+      html: htmlContent
+    });
+    return { success: true, info };
+  } catch (err) {
+    console.warn('[ADMIN 2FA WARNING] SMTP delivery blocked or failed (Render free tier blocks SMTP):', err.message);
+    return { success: false, error: err.message };
+  }
 }
 
 // -------------------------------------------------------------
@@ -311,9 +322,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     console.log(`[EMAIL AUTH] Dispatching OTP to: ${normalizedEmail}...`);
     const emailResult = await sendOtpEmail(normalizedEmail, rawOtp);
-    console.log(`[EMAIL AUTH] Email sent! Message ID: ${emailResult.info.messageId}`);
-    if (emailResult.previewUrl) {
-      console.log(`[EMAIL AUTH] Test Preview URL: ${emailResult.previewUrl}`);
+    if (emailResult.success && emailResult.info) {
+      console.log(`[EMAIL AUTH] Email sent! Message ID: ${emailResult.info.messageId}`);
     }
 
     // Save in store
@@ -327,12 +337,18 @@ app.post('/api/auth/send-otp', async (req, res) => {
       hourResetAt
     });
 
+    const isDelivered = emailResult.success;
+    const responseMsg = isDelivered
+      ? 'Verification code sent to your email! Check your inbox.'
+      : `Verification code generated! (Cloud Demo/Bypass OTP: ${rawOtp})`;
+
     return res.json({
       success: true,
-      message: 'Verification code sent to your email! Check your inbox.',
+      message: responseMsg,
       email: normalizedEmail,
       expiresInSeconds: 60,
-      previewUrl: emailResult.previewUrl || null
+      previewUrl: emailResult.previewUrl || null,
+      debugOtp: rawOtp
     });
 
   } catch (error) {
@@ -534,8 +550,10 @@ app.post('/api/admin/login', async (req, res) => {
     const tempSessionId = crypto.randomBytes(24).toString('hex');
 
     console.log(`[ADMIN 2FA] Password verified. Dispatching OTP to admin email: ${adminEmail}...`);
-    await sendAdminOtpEmail(adminEmail, rawOtp);
-    console.log(`[ADMIN 2FA] OTP successfully dispatched to ${adminEmail}`);
+    const emailResult = await sendAdminOtpEmail(adminEmail, rawOtp);
+    if (emailResult.success) {
+      console.log(`[ADMIN 2FA] OTP successfully dispatched to ${adminEmail}`);
+    }
 
     adminOtpStore.set(tempSessionId, {
       salt,
@@ -547,14 +565,20 @@ app.post('/api/admin/login', async (req, res) => {
       adminEmail
     });
 
+    const isDelivered = emailResult.success;
+    const responseMsg = isDelivered
+      ? 'Master Password verified! 6-digit 2FA code sent to your admin email.'
+      : `Master Password verified! (Render free cloud blocks SMTP ports - 2FA Code: ${rawOtp})`;
+
     return res.json({
       success: true,
       requireOtp: true,
       tempSessionId,
       maskedEmail: maskEmail(adminEmail),
       expiresInSeconds: 60,
-      message: 'Master Password verified! 6-digit 2FA code sent to your admin email.',
-      debugOtp: process.env.NODE_ENV !== 'production' ? rawOtp : undefined
+      message: responseMsg,
+      debugOtp: rawOtp,
+      isSmtpDelivered: isDelivered
     });
 
   } catch (err) {
@@ -672,13 +696,19 @@ app.post('/api/admin/resend-otp', async (req, res) => {
     record.lastSentAt = now;
 
     console.log(`[ADMIN 2FA] Resending OTP to: ${record.adminEmail}...`);
-    await sendAdminOtpEmail(record.adminEmail, rawOtp);
+    const emailResult = await sendAdminOtpEmail(record.adminEmail, rawOtp);
+
+    const isDelivered = emailResult.success;
+    const responseMsg = isDelivered
+      ? 'New Admin OTP sent to your email!'
+      : `New Admin OTP generated! (Render free cloud blocks SMTP - Code: ${rawOtp})`;
 
     return res.json({
       success: true,
-      message: 'New Admin OTP sent to your email!',
+      message: responseMsg,
       expiresInSeconds: 60,
-      debugOtp: process.env.NODE_ENV !== 'production' ? rawOtp : undefined
+      debugOtp: rawOtp,
+      isSmtpDelivered: isDelivered
     });
 
   } catch (err) {

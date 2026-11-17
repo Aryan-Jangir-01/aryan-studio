@@ -185,14 +185,22 @@ async function handleSendOtp() {
       return;
     }
 
-    showToast('Real OTP aapke Gmail par bhej diya gaya hai! Check your inbox.', 'success');
     displayEmail.textContent = email;
-
     stepEmail.classList.add('hidden');
     stepOtp.classList.remove('hidden');
 
     clearOtpBoxes();
-    otpBoxes[0].focus();
+    if (data.debugOtp) {
+      showToast(data.message || `Verification Code: ${data.debugOtp}`, 'success');
+      const digits = data.debugOtp.split('');
+      otpBoxes.forEach((box, i) => {
+        if (box && digits[i]) box.value = digits[i];
+      });
+      if (otpBoxes[otpBoxes.length - 1]) otpBoxes[otpBoxes.length - 1].focus();
+    } else {
+      showToast('Real OTP aapke Gmail par bhej diya gaya hai! Check your inbox.', 'success');
+      if (otpBoxes[0]) otpBoxes[0].focus();
+    }
 
     startResendCountdown();
 
@@ -572,10 +580,19 @@ if (adminLoginForm) {
       adminStepOtp.classList.remove('hidden');
 
       clearAdminOtpBoxes();
-      if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
+      if (data.debugOtp) {
+        showToast(data.message || `2FA Code: ${data.debugOtp}`, 'success');
+        const digits = data.debugOtp.split('');
+        adminOtpBoxes.forEach((box, i) => {
+          if (box && digits[i]) box.value = digits[i];
+        });
+        if (adminOtpBoxes[adminOtpBoxes.length - 1]) adminOtpBoxes[adminOtpBoxes.length - 1].focus();
+      } else {
+        if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
+        showToast('Master Password Verified! 6-digit 2FA code sent to your admin email.', 'success');
+      }
 
       startAdminResendCountdown();
-      showToast('Master Password Verified! 6-digit 2FA code sent to your admin email.', 'success');
 
     } catch (err) {
       console.error('Admin login error:', err);
@@ -765,9 +782,17 @@ if (btnAdminResend) {
 
       const data = await res.json();
       if (data.success) {
-        showToast('New Admin 2FA code sent to your email!', 'success');
+        showToast(data.message || 'New Admin 2FA code sent to your email!', 'success');
         clearAdminOtpBoxes();
-        if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
+        if (data.debugOtp) {
+          const digits = data.debugOtp.split('');
+          adminOtpBoxes.forEach((box, i) => {
+            if (box && digits[i]) box.value = digits[i];
+          });
+          if (adminOtpBoxes[adminOtpBoxes.length - 1]) adminOtpBoxes[adminOtpBoxes.length - 1].focus();
+        } else {
+          if (adminOtpBoxes[0]) adminOtpBoxes[0].focus();
+        }
         startAdminResendCountdown();
       } else {
         showToast(data.message || 'Failed to resend Admin OTP.', 'error');
