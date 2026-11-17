@@ -107,12 +107,45 @@ function normalizeEmail(email) {
   return null;
 }
 
-// Universal Email Dispatcher (Resend HTTPS API over Port 443 + Gmail SMTP Fallback)
+// Universal Email Dispatcher (Brevo / Resend HTTPS API over Port 443 + Gmail SMTP Fallback)
 const defaultResendKey = Buffer.from('cmVfYWtzMzdhWHpfS3VpNGYzQnB4RkhjenpIdVRMVlRiMUtw', 'base64').toString('utf8');
 const RESEND_API_KEY = (process.env.RESEND_API_KEY || defaultResendKey).trim();
 
 async function dispatchEmail({ to, subject, html, text }) {
-  // Primary Strategy: Resend HTTPS REST API (Port 443 - 100% Works on Render Cloud!)
+  let lastError = null;
+
+  // Strategy 1: Brevo HTTPS REST API (Port 443 - Supports ANY recipient email without custom domain!)
+  const brevoKey = (process.env.BREVO_API_KEY || '').trim();
+  if (brevoKey) {
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': brevoKey,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: "Aryan Jangir Studio", email: "aryanjangir0805@gmail.com" },
+          to: [{ email: to }],
+          subject: subject,
+          htmlContent: html
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.messageId) {
+        console.log(`[EMAIL DISPATCH] Sent via Brevo HTTPS API! MessageId: ${data.messageId}`);
+        return { success: true, provider: 'brevo', id: data.messageId };
+      } else {
+        lastError = data.message || 'Brevo error';
+      }
+    } catch (brevoErr) {
+      console.warn(`[EMAIL DISPATCH] Brevo request failed:`, brevoErr.message);
+      lastError = brevoErr.message;
+    }
+  }
+
+  // Strategy 2: Resend HTTPS REST API (Port 443 - Works for owner account aryanjangir0805@gmail.com)
   if (RESEND_API_KEY) {
     try {
       const response = await fetch('https://api.resend.com/emails', {
@@ -136,13 +169,15 @@ async function dispatchEmail({ to, subject, html, text }) {
         return { success: true, provider: 'resend', id: data.id };
       } else {
         console.warn(`[EMAIL DISPATCH] Resend API notice:`, data);
+        lastError = data.message || 'Resend error';
       }
     } catch (resendErr) {
       console.warn(`[EMAIL DISPATCH] Resend request failed:`, resendErr.message);
+      lastError = resendErr.message;
     }
   }
 
-  // Secondary Strategy: Gmail SMTP Transport (Port 465 - Works on Localhost)
+  // Strategy 3: Gmail SMTP Transport (Port 465 - Works on Localhost)
   try {
     const transporter = await getTransporter();
     const sender = getEmailCredentials().user || 'aryanjangir0805@gmail.com';
@@ -157,7 +192,7 @@ async function dispatchEmail({ to, subject, html, text }) {
     return { success: true, provider: 'smtp', id: info.messageId };
   } catch (smtpErr) {
     console.error(`[EMAIL DISPATCH] SMTP failed:`, smtpErr.message);
-    return { success: false, error: smtpErr.message };
+    return { success: false, error: lastError || smtpErr.message };
   }
 }
 
@@ -360,7 +395,21 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     console.log(`[EMAIL AUTH] Dispatching OTP to: ${normalizedEmail}...`);
     const emailResult = await sendOtpEmail(normalizedEmail, rawOtp);
-    if (emailResult.success && emailResult.info) {
+
+    if (!emailResult.success) {
+      console.warn('[EMAIL AUTH FAILED]', emailResult.error);
+      const isSandboxRestriction = emailResult.error && emailResult.error.toLowerCase().includes('only send testing emails');
+      const errorMsg = isSandboxRestriction
+        ? 'Resend Free sandbox me OTP sirf registered email (aryanjangir0805@gmail.com) par allow hai. Kripya apna registered email daalein.'
+        : (emailResult.error || 'Failed to dispatch email.');
+
+      return res.status(400).json({
+        success: false,
+        message: errorMsg
+      });
+    }
+
+    if (emailResult.info) {
       console.log(`[EMAIL AUTH] Email sent! Message ID: ${emailResult.info.messageId}`);
     }
 
