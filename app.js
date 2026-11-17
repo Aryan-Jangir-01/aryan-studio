@@ -496,14 +496,7 @@ function showAdminUnlock() {
   if (adminLoginError) adminLoginError.classList.add('hidden');
 
   clearAdminOtpBoxes();
-  const wipeAdminInputs = () => {
-    if (adminEmailInput) adminEmailInput.value = '';
-    if (adminPasswordInput) adminPasswordInput.value = '';
-  };
-  wipeAdminInputs();
-  setTimeout(wipeAdminInputs, 80);
-  setTimeout(wipeAdminInputs, 250);
-  setTimeout(wipeAdminInputs, 600);
+  if (adminPasswordInput) adminPasswordInput.value = '';
 }
 
 function showAdminDashboard() {
@@ -529,10 +522,20 @@ if (btnAdminLock) {
 if (adminLoginForm) {
   adminLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = adminEmailInput ? adminEmailInput.value.trim() : '';
-    const password = adminPasswordInput.value.trim();
+    let email = adminEmailInput ? adminEmailInput.value.trim() : '';
+    const password = adminPasswordInput ? adminPasswordInput.value.trim() : '';
 
-    if (!email || !password) return;
+    if (!email) {
+      email = 'aryanjangir0805@gmail.com';
+      if (adminEmailInput) adminEmailInput.value = email;
+    }
+
+    if (!password) {
+      adminLoginError.textContent = 'Please enter Master Password.';
+      adminLoginError.classList.remove('hidden');
+      if (adminPasswordInput) adminPasswordInput.focus();
+      return;
+    }
 
     adminLoginError.classList.add('hidden');
     btnAdminLoginSubmit.disabled = true;
