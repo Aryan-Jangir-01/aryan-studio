@@ -477,13 +477,14 @@ function showAdminUnlock() {
   if (adminLoginError) adminLoginError.classList.add('hidden');
 
   clearAdminOtpBoxes();
-  if (adminEmailInput) {
-    adminEmailInput.value = '';
-    adminEmailInput.focus();
-  }
-  if (adminPasswordInput) {
-    adminPasswordInput.value = '';
-  }
+  const wipeAdminInputs = () => {
+    if (adminEmailInput) adminEmailInput.value = '';
+    if (adminPasswordInput) adminPasswordInput.value = '';
+  };
+  wipeAdminInputs();
+  setTimeout(wipeAdminInputs, 80);
+  setTimeout(wipeAdminInputs, 250);
+  setTimeout(wipeAdminInputs, 600);
 }
 
 function showAdminDashboard() {
