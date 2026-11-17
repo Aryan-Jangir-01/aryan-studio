@@ -3,17 +3,37 @@ const cors = require('cors');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
-require('dotenv').config();
+
+// Load environment variables (supports local .env and Render /etc/secrets/.env)
+if (fs.existsSync('/etc/secrets/.env')) {
+  require('dotenv').config({ path: '/etc/secrets/.env' });
+  console.log('[ENV] Loaded secrets from /etc/secrets/.env');
+} else {
+  require('dotenv').config();
+}
+
+// Resilient Environment Variable Getters
+const getEmailCredentials = () => {
+  const user = (process.env.EMAIL_USER || process.env.email_user || process.env.Email_User || process.env.EMAIL_ID || '').trim();
+  const pass = (process.env.EMAIL_PASS || process.env.email_pass || process.env.Email_Pass || process.env.EMAIL_PASSWORD || '').trim();
+  return { user, pass };
+};
+
+const getMongoUri = () => {
+  return (process.env.MONGODB_URI || process.env.mongodb_uri || process.env.MONGO_URI || '').trim();
+};
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
 // Connect to MongoDB Atlas Cloud Database
-if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI, {
+const activeMongoUri = getMongoUri();
+if (activeMongoUri) {
+  mongoose.connect(activeMongoUri, {
     serverSelectionTimeoutMS: 8000
   })
     .then(() => console.log('[MONGODB] Connected successfully to MongoDB Atlas Cloud!'))
@@ -47,21 +67,23 @@ let emailTransporter = null;
 async function getTransporter() {
   if (emailTransporter) return emailTransporter;
 
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  const { user, pass } = getEmailCredentials();
+
+  if (user && pass) {
     // Gmail SMTP Transport with explicit SSL & timeouts
     emailTransporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
       auth: {
-        user: process.env.EMAIL_USER.trim(),
-        pass: process.env.EMAIL_PASS.trim()
+        user,
+        pass
       },
       connectionTimeout: 10000, // 10s timeout
       greetingTimeout: 10000,
       socketTimeout: 15000
     });
-    console.log(`[EMAIL] Connected to Gmail SMTP (${process.env.EMAIL_USER})`);
+    console.log(`[EMAIL] Connected to Gmail SMTP (${user})`);
   } else {
     throw new Error('EMAIL_USER aur EMAIL_PASS server par set nahi hain! Kripya Render Dashboard > Environment Variables me EMAIL_USER aur EMAIL_PASS add karein.');
   }
@@ -88,7 +110,7 @@ function normalizeEmail(email) {
 // Helper: Send Beautiful HTML OTP Email
 async function sendOtpEmail(toEmail, otp) {
   const transporter = await getTransporter();
-  const sender = process.env.EMAIL_USER || 'no-reply@authsystem.local';
+  const sender = getEmailCredentials().user || 'no-reply@authsystem.local';
 
   const htmlContent = `
     <!DOCTYPE html>
