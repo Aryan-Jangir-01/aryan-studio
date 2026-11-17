@@ -477,9 +477,12 @@ function showAdminUnlock() {
   if (adminLoginError) adminLoginError.classList.add('hidden');
 
   clearAdminOtpBoxes();
+  if (adminEmailInput) {
+    adminEmailInput.value = '';
+    adminEmailInput.focus();
+  }
   if (adminPasswordInput) {
     adminPasswordInput.value = '';
-    adminPasswordInput.focus();
   }
 }
 
